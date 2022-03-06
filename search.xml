@@ -1,0 +1,718 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Python 调用 C++</title>
+    <url>/posts/2020/0228155601/</url>
+    <content><![CDATA[<p>Python 的代码优雅而实用，但是经常会遇到性能问题，这时可以使用 C&#x2F;C++ 重写几个函数，然后再用 Python 调用，这样就同时兼顾了开发效率和性能。</p>
+<span id="more"></span>
+
+<p>本文分为3个部分</p>
+<ol>
+<li>安装 Cython (注意区别 CPython)</li>
+<li>Python 调用 C++ 函数</li>
+<li>Python 调用 C++ 类</li>
+</ol>
+<h2 id="安装-Cython"><span class="post-title-index">1  </span><a href="#安装-Cython" class="headerlink" title="安装 Cython"></a>安装 Cython</h2><p>安装 Cython 最简单方法的是使用：</p>
+<p><code>pip install cython</code> 或 <code>conda install cython</code></p>
+<p>Python 的程序写完了可以直接通过 <code>python main.py</code> 执行，但与 Python 不同，Cython 编写的程序需要编译后才能执行，因此，Cython 要求系统中有 C&#x2F;C++ 编译器，gcc&#x2F;g++ 或是 Visual Studio 的编译器均可。若电脑中已经安装了 Visual Studio 的 C++ 相关工具，那么电脑中就已经有 Visual Studio 的 C++ 编译器了，Cython 可以直接使用它。</p>
+<h2 id="Python-调用-C-x2F-C-函数"><span class="post-title-index">2  </span><a href="#Python-调用-C-x2F-C-函数" class="headerlink" title="Python 调用 C&#x2F;C++ 函数"></a>Python 调用 C&#x2F;C++ 函数</h2><p>如果我们在 Python 中遇到了一个执行很慢的函数，需要用 C++ 重写这个函数，下面我们通过一个简单的例子来说明如何处理。</p>
+<h3 id="编写一个-Python-函数"><span class="post-title-index">2.1  </span><a href="#编写一个-Python-函数" class="headerlink" title="编写一个 Python 函数"></a>编写一个 Python 函数</h3><p>以一个简单的函数为例，在 Python 中编写如下函数来计算 $\text{tanh}(x)$ 的值</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> random <span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> time <span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line">e = <span class="number">2.7182818284590452353602874713527</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">sinh</span>(<span class="params">x</span>):</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">1</span> - (e ** (-<span class="number">2</span> * x))) / (<span class="number">2</span> * (e ** -x))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">cosh</span>(<span class="params">x</span>):</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">1</span> + (e ** (-<span class="number">2</span> * x))) / (<span class="number">2</span> * (e ** -x))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tanh</span>(<span class="params">x</span>):</span><br><span class="line">    <span class="keyword">return</span> sinh(x) / cosh(x)</span><br><span class="line"></span><br><span class="line">data = [random() <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>)]    <span class="comment"># 生成随机数据</span></span><br><span class="line"></span><br><span class="line">start_time = time()                 <span class="comment"># 调用1000000次tanh函数并统计时间</span></span><br><span class="line">result1 = <span class="built_in">list</span>(<span class="built_in">map</span>(tanh, data))</span><br><span class="line">end_time = time()</span><br><span class="line"><span class="built_in">print</span>(end_time - start_time)</span><br></pre></td></tr></table></figure>
+
+<p>运行该程序需要 1.39 秒，接下来将上述函数改写成 C++，将其保存在 <code>mytanh.cpp</code> 中</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cmath&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">const</span> <span class="type">double</span> e = <span class="number">2.7182818284590452353602874713527</span>; </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">double</span> <span class="title">mysinh</span><span class="params">(<span class="type">double</span> x)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">1</span> - <span class="built_in">pow</span>(e, (<span class="number">-2</span> * x))) / (<span class="number">2</span> * <span class="built_in">pow</span>(e, -x));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">double</span> <span class="title">mycosh</span><span class="params">(<span class="type">double</span> x)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="number">1</span> + <span class="built_in">pow</span>(e, (<span class="number">-2</span> * x))) / (<span class="number">2</span> * <span class="built_in">pow</span>(e, -x));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">double</span> <span class="title">mytanh</span><span class="params">(<span class="type">double</span> x)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">mysinh</span>(x) / <span class="built_in">mycosh</span>(x);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于<code>sinh, cosh, tanh</code>是 C++ 库函数，为了避免命名冲突，这里修改一下函数名。</p>
+<h3 id="在-Cython-中声明该函数"><span class="post-title-index">2.2  </span><a href="#在-Cython-中声明该函数" class="headerlink" title="在 Cython 中声明该函数"></a>在 Cython 中声明该函数</h3><p>C++ 的函数已经重写好了，下面要将 <code>.cpp</code> 代码进行一些“包装”，使 Python 能够调用它。这个“包装”的工作就是通过 Cython 进行的，众所周知，C++ 是静态类型语言，Python 是动态类型语言，不做任何处理，二者将不能直接调用，“包装”的主要工作其实就是完成各个变量的“类型转换”，例如将 Python 的 <code>int</code> 对象转为 C++ 的 <code>int</code> 类型，这两种 <code>int</code> 是不同的。</p>
+<p>Cython 使用后缀名为 <code>.pyx</code> 和 <code>.pxd</code> 的文件，它们也是代码文件。<code>.pyx</code> 类似于 <code>.cpp</code>，<code>.pxd</code> 类似于 <code>.h</code>。下面进行“包装工作”，我们先不使用 <code>.pyd</code> 文件。</p>
+<p>新建一个<code> fast_tanh.pyx</code> 文件，文件内容如下。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># distutils: language = c++</span><br><span class="line"># cython: language_level = 3</span><br><span class="line"></span><br><span class="line">cdef extern from &quot;mytanh.cpp&quot;:</span><br><span class="line">    double mytanh(double x)</span><br><span class="line">    </span><br><span class="line">def fast_tanh(double x):</span><br><span class="line">    return mytanh(x)</span><br></pre></td></tr></table></figure>
+
+<p>下面我们来解释每条语句的作用。其中</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># distutils: language = c++</span><br><span class="line"># cython: language_level = 3</span><br></pre></td></tr></table></figure>
+
+<p>这两行注释是用于配置编译器的特殊注释，分说明了使用的是 C++ 和 Python3。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">cdef extern from &quot;mytanh.cpp&quot;:</span><br><span class="line">    double mytanh(double x)</span><br></pre></td></tr></table></figure>
+
+<p>Cython 使用 <code>cdef extern from</code> 来声明一个在 C++ 中实现的函数。上述代码声明了 <code>mytanh</code> 函数，使其可以在 Cython 中使用。虽然 <code>mytanh</code> 现在可以在 Cython 中直接调用了，但 Python 并不能直接调用该函数，因此还要声明一个接口函数，命名为 <code>fast_tahn</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># 此函数完成了“包装”的工作，即完成了从 Python 类型到 C++ 类型的转换</span><br><span class="line">def fast_tanh(double x):    # def fast_tanh(x)  也是可行的</span><br><span class="line">    return mytanh(x)</span><br></pre></td></tr></table></figure>
+
+<p>上述代码声明了一个接口函数，前面所述的“包装”工作就是这个函数完成的，完成包装后，Python 能直接调用的是这个 <code>fast_tanh</code> 函数，而不是原始的 <code>mytanh</code> 函数。Cython 的语法与 Python 非常相似，若去掉形参中的 double 也是可行的，但若 Cython 知道参数的类型可以加速运行速度。Cython 支持大部分普通的 Python 代码，因此可以在 Cython 中将 Python 的数据类型和 C++ 的数据类型相互转换，例如可以将 <code>vector</code> 转为 <code>numpy array</code>。若要使用 <code>vector</code> 类型，还需在开头加上 <code>from libcpp.vector cimport vector</code>。</p>
+<h3 id="编写-setup-py"><span class="post-title-index">2.3  </span><a href="#编写-setup-py" class="headerlink" title="编写 setup.py"></a>编写 setup.py</h3><p><code>fast_tanh.pyx</code> 编写完后，需要编译后才能被 Python 调用，编译是通过 <code>setup.py</code> 进行的。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> distutils.core <span class="keyword">import</span> setup, Extension</span><br><span class="line"><span class="keyword">from</span> Cython.Build <span class="keyword">import</span> cythonize</span><br><span class="line"></span><br><span class="line">setup(ext_modules=cythonize(Extension(</span><br><span class="line">    <span class="string">&#x27;fast_tanh&#x27;</span>,                            <span class="comment"># 生成的模块名称</span></span><br><span class="line">    sources=[<span class="string">&#x27;fast_tanh.pyx&#x27;</span>],              <span class="comment"># 要编译的文件</span></span><br><span class="line">    language=<span class="string">&#x27;c++&#x27;</span>,                         <span class="comment"># 使用的语言</span></span><br><span class="line">    include_dirs=[],                        <span class="comment"># gcc的-I参数</span></span><br><span class="line">    library_dirs=[],                        <span class="comment"># gcc的-L参数</span></span><br><span class="line">    libraries=[],                           <span class="comment"># gcc的-l参数</span></span><br><span class="line">    extra_compile_args=[],                  <span class="comment"># 附加编译参数</span></span><br><span class="line">    extra_link_args=[],                     <span class="comment"># 附加链接参数</span></span><br><span class="line">)))</span><br></pre></td></tr></table></figure>
+
+<p>其他参数可以根据需要添加，如果你暂时还不知道这些参数有什么用，那么可以先空着。将上述代码保存到 setup.py 后，运行如下命令即可编译 Cython 文件。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">python setup.py build_ext --inplace</span><br></pre></td></tr></table></figure>
+
+<p>需要注意，编译时的 Python 版本必须和调用时使用的 Python 版本相同。编译完成后，当前目录下会自动生成相应的 cpp 文件和 pyd 文件，在 Linux 上是 so 文件。</p>
+<p>如果使用了 numpy 会在编译过程中看到警告：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Warning Msg: Using deprecated NumPy API, disable it with #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION</span><br></pre></td></tr></table></figure>
+
+<p>该警告可以忽略，因为 Cython 使用的是已经弃用的 Numpy API，不影响使用。</p>
+<h3 id="在-Python-中调用-fast-tanh-函数"><span class="post-title-index">2.4  </span><a href="#在-Python-中调用-fast-tanh-函数" class="headerlink" title="在 Python 中调用 fast_tanh 函数"></a>在 Python 中调用 fast_tanh 函数</h3><p>完成了编译的步骤后，<code>fast_tanh</code>在 Python 中就和一个普通的 Python 模块一样，可以使用 import 来导入</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> fast_tanh <span class="keyword">import</span> fast_tanh     <span class="comment"># 从 fast_tanh.pyx 中导入 fast_tanh 函数</span></span><br></pre></td></tr></table></figure>
+
+<p>导入后，就可以在 Python 中像调用普通函数一样，直接使用 <code>fast_tanh</code> 函数了，完整代码如下，与之前的区别仅仅是把 <code>tanh</code> 替换成了 <code>fast_tanh</code>，非常方便。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> random <span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> time <span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> fast_tanh <span class="keyword">import</span> fast_tanh</span><br><span class="line"></span><br><span class="line">data = [random() <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1000000</span>)]    <span class="comment"># 生成随机数据</span></span><br><span class="line"></span><br><span class="line">start_time = time()              <span class="comment"># 计算并统计时间</span></span><br><span class="line">result = <span class="built_in">list</span>(<span class="built_in">map</span>(fast_tanh, data))</span><br><span class="line">end_time = time()</span><br><span class="line"><span class="built_in">print</span>(end_time - start_time)     <span class="comment"># 输出运行时间</span></span><br></pre></td></tr></table></figure>
+
+<p>测试运行速度，运行上述代码共需 0.18 秒，可以看到，仅仅替换了一个 tanh 函数后性能提升了近 8 倍。如果有其他更复杂的操作，可以提升几十倍甚至上百倍的性能。</p>
+<h2 id="Python-调用-C-x2F-C-类"><span class="post-title-index">3  </span><a href="#Python-调用-C-x2F-C-类" class="headerlink" title="Python 调用 C&#x2F;C++ 类"></a>Python 调用 C&#x2F;C++ 类</h2><p>前面我们调用了 C&#x2F;C++ 的函数，但如果我们有更多内容需要用 C&#x2F;C++ 重写，想调用 C++ 编写的类呢？其实方法大同小异，主要的步骤还是在 Cython 中声明后，进行“包装”，编译，最后就可以在 Python 中调用了。</p>
+<h3 id="编写一个-C-类"><span class="post-title-index">3.1  </span><a href="#编写一个-C-类" class="headerlink" title="编写一个 C++ 类"></a>编写一个 C++ 类</h3><p>我们以一个简单的矩形类为例，假设我们在 C++ 中编写了一个矩形类。头文件 <code>Rectangle.h</code> 为：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> RECTANGLE_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> RECTANGLE_H</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> shapes </span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title class_">Rectangle</span> </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span>:</span><br><span class="line">            <span class="type">int</span> x0, y0, x1, y1;      <span class="comment">// 矩形对角线上的两个点坐标</span></span><br><span class="line">            <span class="built_in">Rectangle</span>();</span><br><span class="line">            <span class="built_in">Rectangle</span>(<span class="type">int</span> x0, <span class="type">int</span> y0, <span class="type">int</span> x1, <span class="type">int</span> y1);</span><br><span class="line">            ~<span class="built_in">Rectangle</span>();</span><br><span class="line">            <span class="function"><span class="type">int</span> <span class="title">getArea</span><span class="params">()</span></span>;</span><br><span class="line">            <span class="function"><span class="type">void</span> <span class="title">getSize</span><span class="params">(<span class="type">int</span>* width, <span class="type">int</span>* height)</span></span>;</span><br><span class="line">            <span class="function"><span class="type">void</span> <span class="title">move</span><span class="params">(<span class="type">int</span> dx, <span class="type">int</span> dy)</span></span>;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>Rectangle.cpp</code> 中的实现为：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;Rectangle.h&quot;</span></span></span><br><span class="line"><span class="keyword">namespace</span> shapes &#123;</span><br><span class="line">    <span class="comment">// 构造函数</span></span><br><span class="line">    Rectangle::<span class="built_in">Rectangle</span> () &#123;&#125;</span><br><span class="line">    Rectangle::<span class="built_in">Rectangle</span> (<span class="type">int</span> x0, <span class="type">int</span> y0, <span class="type">int</span> x1, <span class="type">int</span> y1) &#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;x0 = x0;</span><br><span class="line">        <span class="keyword">this</span>-&gt;y0 = y0;</span><br><span class="line">        <span class="keyword">this</span>-&gt;x1 = x1;</span><br><span class="line">        <span class="keyword">this</span>-&gt;y1 = y1;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 析构函数</span></span><br><span class="line">    Rectangle::~<span class="built_in">Rectangle</span> () &#123;&#125;</span><br><span class="line">    <span class="comment">// 获取矩形面积</span></span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">Rectangle::getArea</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">this</span>-&gt;x1 - <span class="keyword">this</span>-&gt;x0) * (<span class="keyword">this</span>-&gt;y1 - <span class="keyword">this</span>-&gt;y0);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 获取矩形的边长</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">Rectangle::getSize</span> <span class="params">(<span class="type">int</span> *width, <span class="type">int</span> *height)</span> </span>&#123;</span><br><span class="line">        (*width) = x1 - x0;</span><br><span class="line">        (*height) = y1 - y0;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 移动矩形</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">Rectangle::move</span> <span class="params">(<span class="type">int</span> dx, <span class="type">int</span> dy)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;x0 += dx;</span><br><span class="line">        <span class="keyword">this</span>-&gt;y0 += dy;</span><br><span class="line">        <span class="keyword">this</span>-&gt;x1 += dx;</span><br><span class="line">        <span class="keyword">this</span>-&gt;y1 += dy;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="在-Cython-中声明类"><span class="post-title-index">3.2  </span><a href="#在-Cython-中声明类" class="headerlink" title="在 Cython 中声明类"></a>在 Cython 中声明类</h3><p>接下来需要在 Cython 中编写一个接口。与前面调用 C++ 函数类似，使用 <code>cdef extern from</code> 来声明一个在 C++ 中实现的类：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">cdef <span class="keyword">extern</span> from <span class="string">&quot;Rectangle.h&quot;</span> <span class="keyword">namespace</span> <span class="string">&quot;shapes&quot;</span>:</span><br></pre></td></tr></table></figure>
+
+<p>若没有命名空间，则使用：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">cdef <span class="keyword">extern</span> from <span class="string">&quot;Rectangle.h&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们现在使用 <code>.pxd</code> 文件，其实如果一定要像刚才一样放在一个文件里也是可以的。将声明放在 <code>Rectangle.pxd</code> 文件中，<code>.pxd</code> 文件相当于 C++ 的 <code>.h</code> 文件，专门用于声明：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">cdef extern from &quot;Rectangle.cpp&quot;:</span><br><span class="line">    pass</span><br><span class="line"># 用cdef声明类</span><br><span class="line">cdef extern from &quot;Rectangle.h&quot; namespace &quot;shapes&quot;:</span><br><span class="line">    cdef cppclass Rectangle:</span><br><span class="line">        Rectangle() except +</span><br><span class="line">        Rectangle(int, int, int, int) except +</span><br><span class="line">        int x0, y0, x1, y1</span><br><span class="line">        int getArea()</span><br><span class="line">        void getSize(int* width, int* height)</span><br><span class="line">        void move(int, int)</span><br></pre></td></tr></table></figure>
+
+<p>由于 <code>.h</code> 文件中没有实现矩形类，还要使用下面的语句来包含 <code>Rectangle.cpp</code> 中实现的代码</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">cdef extern from &quot;Rectangle.cpp&quot;:</span><br><span class="line">    pass</span><br></pre></td></tr></table></figure>
+
+<p><code>cdef cppclass Rectangle</code> 声明了一个在 C++ 中定义的类，其他函数的声明与前面调用函数类似。在构造函数后加上 <code>except +</code> 可以使 Python 能够捕获到在构造函数中发生的异常，若不加 <code>except +</code>，则 Cython 不会处理构造函数中发生的异常。</p>
+<h3 id="在-Cython-中编写接口类"><span class="post-title-index">3.3  </span><a href="#在-Cython-中编写接口类" class="headerlink" title="在 Cython 中编写接口类"></a>在 Cython 中编写接口类</h3><p>与前面相同，虽然现在 C++ 中的类在 Cython 中可以直接访问了，但在 Python 中并不能访问。因此，我们还需要实现一个接口类，用于在 Python 中调用。注意，C++ 类的声明放在 <code>.pxd</code> 文件中, 接口类的实现放在 <code>.pyx</code> 中。<code>PyRectangle.pyx</code>为 :</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># distutils: language = c++</span><br><span class="line">from Rectangle cimport Rectangle</span><br><span class="line"></span><br><span class="line"># 接口类</span><br><span class="line"># Python可以直接访问接口类，接口类可以直接访问C++类</span><br><span class="line">cdef class PyRectangle:</span><br><span class="line">    cdef Rectangle c_rect    # 存储C++对象</span><br><span class="line">    def __cinit__(self, int x0, int y0, int x1, int y1):</span><br><span class="line">        self.c_rect = Rectangle(x0, y0, x1, y1)</span><br><span class="line">    def get_area(self):</span><br><span class="line">        return self.c_rect.getArea()</span><br><span class="line">    def get_size(self):</span><br><span class="line">        cdef int width, height</span><br><span class="line">        self.c_rect.getSize(&amp;width, &amp;height)</span><br><span class="line">        return width, height</span><br><span class="line">    def move(self, dx, dy):</span><br><span class="line">        self.c_rect.move(dx, dy)</span><br></pre></td></tr></table></figure>
+
+<p>现在，<code>PyRectangle</code> 类就像普通的 Python 类一样可以直接在 Python 中调用了。</p>
+<p>另外，Cython 也支持使用 <code>new</code> 创建 C++ 对象</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">def __cinit__(self, int x0, int y0, int x1, int y1):</span><br><span class="line">    self.c_rect = new Rectangle(x0, y0, x1, y1)</span><br></pre></td></tr></table></figure>
+
+<p>与 C++ 相同，使用了 <code>new</code> 就必须使用 <code>delete</code> 释放内存，否则会造成内存泄漏。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">def __dealloc__(self):    # 析构函数</span><br><span class="line">    del self.c_rect       # 释放内存</span><br></pre></td></tr></table></figure>
+
+<h3 id="编译"><span class="post-title-index">3.4  </span><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p><code>setup.py</code> 内容如下</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> distutils.core <span class="keyword">import</span> setup, Extension</span><br><span class="line"><span class="keyword">from</span> Cython.Build <span class="keyword">import</span> cythonize</span><br><span class="line"></span><br><span class="line">setup(ext_modules=cythonize(Extension(</span><br><span class="line">    <span class="string">&#x27;PyRectangle&#x27;</span>,                          <span class="comment"># 生成的模块名称</span></span><br><span class="line">    sources=[<span class="string">&#x27;PyRectangle.pyx&#x27;</span>],            <span class="comment"># 要编译的文件</span></span><br><span class="line">    language=<span class="string">&#x27;c++&#x27;</span>,                         <span class="comment"># 使用的语言</span></span><br><span class="line">    include_dirs=[],                        <span class="comment"># gcc的-I参数</span></span><br><span class="line">    library_dirs=[],                        <span class="comment"># gcc的-L参数</span></span><br><span class="line">    libraries=[],                           <span class="comment"># gcc的-l参数</span></span><br><span class="line">    extra_compile_args=[],                  <span class="comment"># 附加编译参数</span></span><br><span class="line">    extra_link_args=[],                     <span class="comment"># 附加链接参数</span></span><br><span class="line">)))</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>python setup.py build_ext --inplace</code> 编译</p>
+<h3 id="在-Python-中调用接口类"><span class="post-title-index">3.5  </span><a href="#在-Python-中调用接口类" class="headerlink" title="在 Python 中调用接口类"></a>在 Python 中调用接口类</h3><p>现在，<code>PyRectangle</code> 类就和普通的 Python 类一样，可以直接被 Python 调用</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> PyRectangle</span><br><span class="line"></span><br><span class="line">x0, y0, x1, y1 = <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span></span><br><span class="line">rect = PyRectangle.PyRectangle(x0, y0, x1, y1)</span><br><span class="line"><span class="built_in">print</span>(rect.get_area())</span><br></pre></td></tr></table></figure>
+
+<p>运行该程序，输出了矩形面积，调用成功。</p>
+<h2 id="总结"><span class="post-title-index">4  </span><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通过 Cython 调用 C&#x2F;C++ 的<strong>原理</strong>是：</p>
+<p>Python -&gt; Cython 接口 -&gt; C&#x2F;C++</p>
+<p>访问 C++ 都是通过 Cython 接口完成的。</p>
+<p>若还想了解更多，可以阅读 Cython <a href="https://www.bookstack.cn/read/cython-doc-zh/README.md">文档</a></p>
+<h2 id="参考资料"><span class="post-title-index">5  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://www.bookstack.cn/read/cython-doc-zh/README.md">https://www.bookstack.cn/read/cython-doc-zh/README.md</a></li>
+<li><a href="https://www.youtube.com/watch?v=D9RlT06a1EI&amp;t=45s">https://www.youtube.com/watch?v=D9RlT06a1EI&amp;t=45s</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>一个 Python 整数溢出的坑</title>
+    <url>/posts/2020/120390311/</url>
+    <content><![CDATA[<p>众所周知，Python 的整数是不会溢出的，例如运行如下代码，Python 可以完整地计算出 $2^{100}$</p>
+<span id="more"></span>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(<span class="number">2</span> ** <span class="number">200</span>)</span><br><span class="line"><span class="comment"># 1606938044258990275541962092341162602522202993782792835301376</span></span><br></pre></td></tr></table></figure>
+
+<p>但是，在执行以下代码时，发现整数却溢出了</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">result = <span class="number">0</span></span><br><span class="line">array = np.array([<span class="number">145</span>, <span class="number">124</span>, <span class="number">58</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> array:</span><br><span class="line">    result += i</span><br><span class="line">    result = result &lt;&lt; <span class="number">8</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(result)</span><br><span class="line"><span class="comment"># -1854129664</span></span><br></pre></td></tr></table></figure>
+
+<p>这是为什么呢？Python 的整数怎么会溢出呢？我们输出中间的计算过程</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">result = <span class="number">0</span></span><br><span class="line">array = np.array([<span class="number">145</span>, <span class="number">124</span>, <span class="number">58</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> array:</span><br><span class="line">    result += i</span><br><span class="line">    <span class="built_in">print</span>(result)</span><br><span class="line">    result = result &lt;&lt; <span class="number">8</span></span><br><span class="line">    <span class="built_in">print</span>(result, <span class="string">&#x27;\n&#x27;</span>)</span><br><span class="line">    </span><br><span class="line"><span class="comment"># 输出结果:</span></span><br><span class="line"><span class="comment"># 145</span></span><br><span class="line"><span class="comment"># 37120 </span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment"># 37244</span></span><br><span class="line"><span class="comment"># 9534464 </span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line"><span class="comment"># 9534522</span></span><br><span class="line"><span class="comment"># -1854129664</span></span><br></pre></td></tr></table></figure>
+
+<p>看来是在最后一步溢出的，难道是 Python 算错了吗？单独计算</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">print(9534522 &lt;&lt; 8)</span><br><span class="line"># 2440837632</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，单独计算 <code>9534522 &lt;&lt; 8</code> 的结果确是正确的。进一步调试，发现 <code>result</code> 的类型竟然是 <code>int32</code> 而不是 <code>int</code></p>
+<img src="/posts/2020/120390311/fig2.jpg" alt="fig2" style="zoom:67%;">
+
+<p>原来是因为 <code>array</code> 中的数据类型是 <code>np.int32</code> ，因此变量 <code>i</code> 的类型也是 <code>np.int32</code> ，在执行 <code>result += i</code> 后，<code>int</code> 类型与 <code>np.int32</code> 类型相加后结果被转成了 <code>np.int32</code> 这才出现了整数溢出。因此，只需将 <code>i</code> 的类型转为 <code>int</code> 就不会发生溢出了。修改前面的代码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">result = <span class="number">0</span></span><br><span class="line">array = np.array([<span class="number">145</span>, <span class="number">124</span>, <span class="number">58</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> array:</span><br><span class="line">    result += <span class="built_in">int</span>(i)    <span class="comment"># 将 np.int32 转为 int</span></span><br><span class="line">    result = result &lt;&lt; <span class="number">8</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(result)</span><br><span class="line"><span class="comment"># 2440837632 没有出现溢出</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>bug</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+        <tag>bug</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>VS Code 配置 ns3 开发环境</title>
+    <url>/posts/2021/1217161030/</url>
+    <content><![CDATA[<p>本文介绍在 win10 中使用 VS Code 配置 ns3 远程开发环境 (代码补全、调试) 的步骤，包括 ns3 的安装以及 VS Code 的配置。</p>
+<span id="more"></span>
+
+<p>如果不想配置可以直接使用这个 <a href="https://github.com/iqhy/ns3-vscode">Docker 镜像</a>。</p>
+<h2 id="安装-ns3-及其依赖"><span class="post-title-index">1  </span><a href="#安装-ns3-及其依赖" class="headerlink" title="安装 ns3 及其依赖"></a>安装 ns3 及其依赖</h2><p>首先，安装 ns3，如果已经安装过可以跳到下一步。</p>
+<h3 id="安装依赖"><span class="post-title-index">1.1  </span><a href="#安装依赖" class="headerlink" title="安装依赖"></a>安装依赖</h3><p>安装 ns3 前需要安装以下软件：</p>
+<ul>
+<li>g++ 7 及以上版本</li>
+<li>Python 3</li>
+<li>Git</li>
+<li>tar</li>
+<li>bunzip2</li>
+</ul>
+<p>以 Ubuntu 为例，输入以下命令安装依赖：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo apt install gcc g++ git</span><br></pre></td></tr></table></figure>
+
+<p>注：一般情况下，Python 3、tar 和 bunzip2 在 Ubuntu 系统中是自带的，所以这里不用安装。</p>
+<h3 id="安装-ns3"><span class="post-title-index">1.2  </span><a href="#安装-ns3" class="headerlink" title="安装 ns3"></a>安装 ns3</h3><p>以安装 3.34 版本的 ns3 为例，首先使用 <code>cd</code> 命令切换到你想要安装 ns3 的文件夹，然后使用以下命令下载 ns3：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ wget https://www.nsnam.org/release/ns-allinone-3.34.tar.bz2</span><br></pre></td></tr></table></figure>
+
+<p>下载完成后将其解压：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ tar xjf ns-allinone-3.34.tar.bz2</span><br></pre></td></tr></table></figure>
+
+<p>然后进行编译。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> ns-allinone-3.34</span><br><span class="line">$ ./build.py --enable-examples --enable-tests</span><br></pre></td></tr></table></figure>
+
+<p>看到以下输出就是编译完成了</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">Waf: Leaving directory <span class="string">&#x27;/path/to/workspace/ns-allinone-3.34/ns-3.34/build&#x27;</span></span><br><span class="line"><span class="string">&#x27;build&#x27;</span> finished successfully (6m25.032s)</span><br><span class="line"></span><br><span class="line">Modules built:</span><br><span class="line">...  // 中间输出省略</span><br><span class="line"></span><br><span class="line">Modules not built (see ns-3 tutorial <span class="keyword">for</span> explanation):</span><br><span class="line">brite     click     openflow</span><br><span class="line"></span><br><span class="line">Leaving directory ./ns-3.34</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置-VS-Code"><span class="post-title-index">2  </span><a href="#配置-VS-Code" class="headerlink" title="配置 VS Code"></a>配置 VS Code</h2><h3 id="安装插件"><span class="post-title-index">2.1  </span><a href="#安装插件" class="headerlink" title="安装插件"></a>安装插件</h3><p>打开 VS Code 插件商店，安装 Remote - SSH 和 C&#x2F;C++ 两个插件</p>
+<img src="/posts/2021/1217161030/image-20211216235403337.png" alt="image-20211216235403337" width="600">
+
+<p>注：如果你的 VS Code 搜索不到这个插件，说明你安装的是开源的 VS Codium，这个版本不支持部分插件，需要重新安装完整版。</p>
+<h3 id="配置远程"><span class="post-title-index">2.2  </span><a href="#配置远程" class="headerlink" title="配置远程"></a>配置远程</h3><p>在 VS Code 中按 F1, 输入 Remote-SSH，选择 Remote-SSH: Connect to Host 选项，再选择 Add New SSH Host，输入 <code>ssh username@hostname</code>，这里将 <code>username</code> 换成你自己 Linux 系统中的用户名，<code>hostname</code> 换成自己 Linux 系统的 ip。</p>
+<img src="/posts/2021/1217161030/image-20211217001616091.png" alt="image-20211217001616091" width="500">
+
+<p>然后回车选择第一个文件保存。添加完成后，点击左下角的 “&gt;&lt;” 符号</p>
+<img src="/posts/2021/1217161030/image-20211217001717307.png" alt="image-20211217001717307" width="150">
+
+<p>选择 Connect to host，再选择刚才添加的 Host。例如我刚才添加的是 192.168.1.105</p>
+<img src="/posts/2021/1217161030/image-20211217001846405.png" alt="image-20211217001846405" width="500">
+
+<p>这时，VS Code 会打开一个新的窗口，在弹出的窗口中选择 Linux</p>
+<img src="/posts/2021/1217161030/image-20211217002035046.png" alt="image-20211217002035046" width="500">
+
+<p>然后输入密码即可成功连接到远程服务器。</p>
+<h3 id="配置-ns3-代码提示"><span class="post-title-index">2.3  </span><a href="#配置-ns3-代码提示" class="headerlink" title="配置 ns3 代码提示"></a>配置 ns3 代码提示</h3><p>再次打开插件商店，搜索 C&#x2F;C++ 插件，选择在 SSH 中安装</p>
+<img src="/posts/2021/1217161030/image-20211217002841189.png" alt="image-20211217002841189" width="400">
+
+<p>在 VS Code 左侧选择打开文件夹，打开 ns3 的安装文件夹。例如，我要打开 <code>ns-3.34</code> 文件夹。若弹出是否信任文件夹，选择信任。</p>
+<img src="/posts/2021/1217161030/image-20211217002952582.png" alt="image-20211217002952582" width="300">
+
+<p>在 VS Code 中按 F1, 打开 c&#x2F;c++: Edit configurations(json)，修改 <code>c_cpp_properties.json</code> 的配置为如下所示</p>
+<figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 复制全部内容, 替换 c_cpp_properties.json 的全部内容即可</span></span><br><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;configurations&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Linux&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="comment">// 代码提示需要用到的头文件都在这个文件夹里, 所以修改该项</span></span><br><span class="line">            <span class="attr">&quot;includePath&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;$&#123;workspaceFolder&#125;/build/**&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;defines&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;compilerPath&quot;</span><span class="punctuation">:</span> <span class="string">&quot;/usr/bin/gcc&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;cStandard&quot;</span><span class="punctuation">:</span> <span class="string">&quot;gnu17&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;cppStandard&quot;</span><span class="punctuation">:</span> <span class="string">&quot;gnu++14&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;intelliSenseMode&quot;</span><span class="punctuation">:</span> <span class="string">&quot;linux-gcc-x64&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="number">4</span></span><br><span class="line"><span class="punctuation">&#125;</span> </span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-ns3-代码编译"><span class="post-title-index">2.4  </span><a href="#配置-ns3-代码编译" class="headerlink" title="配置 ns3 代码编译"></a>配置 ns3 代码编译</h3><p>随便打开一个代码文件，点击菜单栏的<strong>终端</strong>，选择<strong>配置默认生成任务</strong>，选择 <strong>C&#x2F;C++: cpp生成活动文件</strong>，(如果你的 VS Code 是英文版，选择 C&#x2F;C++: cpp build active file)。修改 <code>task.json</code> 的配置为如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 复制全部内容, 替换 task.json 的全部内容即可</span><br><span class="line">&#123;</span><br><span class="line">    &quot;version&quot;: &quot;2.0.0&quot;,</span><br><span class="line">    &quot;tasks&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;type&quot;: &quot;cppbuild&quot;,</span><br><span class="line">            &quot;label&quot;: &quot;C/C++: cpp build active file&quot;,</span><br><span class="line">            &quot;command&quot;: &quot;./waf&quot;,   // 改为 waf 编译</span><br><span class="line">            &quot;args&quot;: [],</span><br><span class="line">            &quot;options&quot;: &#123;</span><br><span class="line">                &quot;cwd&quot;: &quot;$&#123;workspaceFolder&#125;&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;problemMatcher&quot;: [</span><br><span class="line">                &quot;$gcc&quot;</span><br><span class="line">            ],</span><br><span class="line">            &quot;group&quot;: &#123;</span><br><span class="line">                &quot;kind&quot;: &quot;build&quot;,</span><br><span class="line">                &quot;isDefault&quot;: true</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;detail&quot;: &quot;compiler: /usr/bin/cpp&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-ns3-代码调试"><span class="post-title-index">2.5  </span><a href="#配置-ns3-代码调试" class="headerlink" title="配置 ns3 代码调试"></a>配置 ns3 代码调试</h3><p>点击左侧的调试图标，点击创建 lauch.json 文件，选择 C++ (GDB&#x2F;LLDB).</p>
+<img src="/posts/2021/1217161030/image-20211217170939415.png" alt="image-20211217170939415" width="600">
+
+<p>修改 <code>launch.json</code> 的配置为如下所示:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 复制全部内容, 替换 launch.json 的全部内容即可  </span><br><span class="line">&#123;</span><br><span class="line">    &quot;version&quot;: &quot;0.2.0&quot;,</span><br><span class="line">    &quot;configurations&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;name&quot;: &quot;waf - Build and debug active file&quot;,</span><br><span class="line">            &quot;type&quot;: &quot;cppdbg&quot;,</span><br><span class="line">            &quot;request&quot;: &quot;launch&quot;,</span><br><span class="line">            &quot;program&quot;: &quot;$&#123;workspaceFolder&#125;/build/scratch/$&#123;fileBasenameNoExtension&#125;&quot;,</span><br><span class="line">            &quot;args&quot;: [],</span><br><span class="line">            &quot;stopAtEntry&quot;: false,</span><br><span class="line">            &quot;cwd&quot;: &quot;$&#123;fileDirname&#125;&quot;,</span><br><span class="line">            &quot;preLaunchTask&quot;: &quot;C/C++: cpp build active file&quot;,</span><br><span class="line">            &quot;environment&quot;: [],</span><br><span class="line">            &quot;MIMode&quot;: &quot;gdb&quot;,</span><br><span class="line">            &quot;setupCommands&quot;: [</span><br><span class="line">                &#123;</span><br><span class="line">                    &quot;description&quot;: &quot;Enable pretty-printing for gdb&quot;,</span><br><span class="line">                    &quot;text&quot;: &quot;-enable-pretty-printing&quot;,</span><br><span class="line">                    &quot;ignoreFailures&quot;: true</span><br><span class="line">                &#125;</span><br><span class="line">            ],</span><br><span class="line">            &quot;miDebuggerPath&quot;: &quot;/usr/bin/gdb&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后，在 Linux 中输入以下语句修改环境变量：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ vim ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>在文件末尾添加以下语句，并将 <code>&quot;/path/to/ns-3.34/build/lib&quot;</code> 改为你自己 ns3 中 lib 文件夹对应的绝对路径。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">export</span> LD_LIBRARY_PATH=<span class="string">&quot;/path/to/ns-3.34/build/lib&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>保存并退出后，输入以下语句更新环境变量：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ <span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>最后，在你的函数中添加一个断点，按 F5 运行，可以在左侧看到当前的变量、调用堆栈等信息，调试成功。</p>
+<img src="/posts/2021/1217161030/image-20211217150256752.png" alt="image-20211217150256752" width="800">
+
+<h2 id="参考资料"><span class="post-title-index">3  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://www.bilibili.com/read/cv9932411">https://www.bilibili.com/read/cv9932411</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>ns3</category>
+      </categories>
+      <tags>
+        <tag>ns3</tag>
+        <tag>vscode</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用 Python 和 C++ 并行 MCTS</title>
+    <url>/posts/2020/315210355/</url>
+    <content><![CDATA[<p>简单介绍在 Python 和 C++ 中蒙特卡洛树搜索 (MCTS) 的并行化方法。</p>
+<span id="more"></span>
+
+<h2 id="前言"><span class="post-title-index">1  </span><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>当我们在 Python 中实现了 MCTS 后，可能会遇到性能问题，这时就需要将 MCTS 并行化。MCTS 的并行方法主要分为三种：</p>
+<ol>
+<li><strong>叶并行 (leaf parallelization)</strong>, 即在叶节点扩展时进行并行。</li>
+<li><strong>根并行 (root parallelization)</strong>, 即直接使用进程或线程创建多个不同的树，在不同的树中同时执行搜索。</li>
+<li><strong>树并行 (tree parallelization)</strong>, 即多个线程在同一个树中进行并行，每个线程在树的不同部分执行搜索。</li>
+</ol>
+<p>这些并行方法的详细介绍可以参考这篇<a href="https://ieeexplore.ieee.org/abstract/document/6145622">论文</a>的第 25 页。</p>
+<img src="/posts/2020/315210355/1.png" alt="1" style="zoom:50%;">
+
+<center>图1 MCTS的并行化方法<sup>[1]</sup></center>
+
+<h2 id="叶并行"><span class="post-title-index">2  </span><a href="#叶并行" class="headerlink" title="叶并行"></a>叶并行</h2><p>叶并行的方法比较简单，只需在遇到叶节点时，同时执行多次模拟 (simulation)，然后使用多次模拟的结果来代替之前的结果即可。但是在 AlphaZero 的算法中，叶并行的方法并不适用。因为该算法实际上并没有模拟 (simulation) 这个过程，而是使用神经网络直接返回当前节点的评估结果，因此需要使用其他并行方法。AlphaZero 的原理可以参考这篇<a href="https://charlesliuyx.github.io/2017/10/18/%E6%B7%B1%E5%85%A5%E6%B5%85%E5%87%BA%E7%9C%8B%E6%87%82AlphaGo%E5%85%83/">文章</a>。</p>
+<h2 id="根并行"><span class="post-title-index">3  </span><a href="#根并行" class="headerlink" title="根并行"></a>根并行</h2><p>根并行的实现同样比较简单，只要使用 Multiprocessing 或 concurrent.futures.ProcessPoolExecutor 直接调用 MCTS 即可。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> multiprocessing <span class="keyword">as</span> mp</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">mcts_main</span>(<span class="params">a, b</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    mcts搜索的主函数</span></span><br><span class="line"><span class="string">    输入参数：a, b</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">p = mp.Pool(<span class="number">10</span>)           <span class="comment"># 10个进程  </span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">50</span>):       <span class="comment"># 50个待执行任务</span></span><br><span class="line">    p.apply_async(mcts_main, args=(a, b))</span><br><span class="line">p.close()</span><br><span class="line">p.join()</span><br></pre></td></tr></table></figure>
+
+<p>如果在 MCTS 中调用了 GPU 版的 Keras，需要设置显存按需增长，并且要将 <code>import keras</code> 放在函数内，否则将不能并行调用 <code>model.predict()</code> </p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</span><br><span class="line">config = tf.ConfigProto()</span><br><span class="line">config.gpu_options.allow_growth = <span class="literal">True</span></span><br><span class="line">session = tf.Session(config=config)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">mcts_main</span>(<span class="params">a, b</span>):</span><br><span class="line">    <span class="keyword">import</span> keras            <span class="comment"># import keras要放在函数内</span></span><br><span class="line">    <span class="comment"># mcts搜索的主函数</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+
+<p>这样并行虽然简单，但缺点是程序占内存大，且显存容易不够用。</p>
+<h2 id="树并行"><span class="post-title-index">4  </span><a href="#树并行" class="headerlink" title="树并行"></a>树并行</h2><p>在 Python 中直接按照上述方法并行后，可能还是无法满足需求，需要更高效的并行方法。由于 GIL 的限制，在Python 中不能使用多线程来并行 MCTS，但实现树并行时需要进程&#x2F;线程间较多的通信，如果直接在 Python 中用 multiprocessing 实现，可能带来较大的性能损失，同时实现起来也比较困难<sup>[2]</sup>。</p>
+<p>一种解决方法是用 C++ 实现树并行，再封装成 Python 接口，在 Python 中调用，这样就避开了 GIL 的限制。C++ 的树并行实现可以参考这个 <a href="https://github.com/hijkzzz/alpha-zero-gomoku">Github 项目</a> 。这个项目使用的是 PyTorch，如果你使用的是 Keras，要在 C++ 中调用 Keras 可以参考这篇<a href="https://iqhy.github.io/posts/2020/0229161832/">文章</a>。将 C++ 封装成 Python 接口可以参考这篇<a href="https://iqhy.github.io/posts/2020/0228155601/">文章</a>。</p>
+<p>封装成 Python 接口后，由于避开了 GIL 的限制，可以直接通过多线程调用。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> concurrent.futures</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">mcts_main</span>(<span class="params">a, b</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    mcts搜索的主函数</span></span><br><span class="line"><span class="string">    输入参数：a, b</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line"><span class="comment"># 最大线程数10，50个待执行任务</span></span><br><span class="line"><span class="keyword">with</span> concurrent.futures.ThreadPoolExecutor(max_workers=<span class="number">10</span>) <span class="keyword">as</span> executor:</span><br><span class="line">            futures = [executor.submit(mcts_main, a, b) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">50</span>)]</span><br><span class="line">            <span class="keyword">for</span> future <span class="keyword">in</span> concurrent.futures.as_completed(futures):</span><br><span class="line">                result = future.result()</span><br><span class="line">                ...</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考资料"><span class="post-title-index">5  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p>[1] Browne, C. B., Powley, E., Whitehouse, D., Lucas, S. M., Cowling, P. I., Rohlfshagen, P., … &amp; Colton, S. (2012). A survey of monte carlo tree search methods. <em>IEEE Transactions on Computational Intelligence and AI in games</em>, <em>4</em>(1), 1-43.</p>
+<p>[2] <a href="https://stackoverflow.com/questions/52584142/mcts-tree-parallelization-in-python-possible">https://stackoverflow.com/questions/52584142/mcts-tree-parallelization-in-python-possible</a></p>
+<p>本人水平有限，如有不足之处，欢迎指出。</p>
+]]></content>
+      <categories>
+        <category>机器学习</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+        <tag>C++</tag>
+        <tag>mcts</tag>
+        <tag>Keras</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用 Visual Studio 检测内存泄漏</title>
+    <url>/posts/2021/0321131258/</url>
+    <content><![CDATA[<p>在 Visual Studio 中使用 C Run-time Library (CRT) 检测内存泄漏。</p>
+<span id="more"></span>
+
+<p>内存泄漏是 C&#x2F;C++ 中最难发现的 BUG 之一，通常难以被注意到，使用 Visual Studio 和 C Run-time Library (CRT) 可以帮助我们发现内存泄漏问题。</p>
+<h2 id="启用内存泄漏检测"><span class="post-title-index">1  </span><a href="#启用内存泄漏检测" class="headerlink" title="启用内存泄漏检测"></a>启用内存泄漏检测</h2><p>要启用内存泄漏检测，只需在你的程序前加上</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;crtdbg.h&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>其中，<code>#define _CRTDBG_MAP_ALLOC</code> 的作用是显示<strong>详细信息</strong>（如内存泄漏发生的文件、发生的具体行号），如果省略该语句，将不会输出详细信息。</p>
+<p><code>#include crtdbg.h</code> 将内存分配时使用的 <code>malloc</code> 和 <code>free</code> 函数分别改变为 <code>_malloc_dbg</code> 和 <code>_free_dbg</code>。在使用上，二者是相同的，后者只是比前者多了跟踪内存分配的功能，因此可以检测内存泄漏。</p>
+<p>添加上述语句后，还需要在应用出口点前加上 <code>_CrtDumpMemoryLeaks</code>，以输出内存泄漏报告。</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">_CrtDumpMemoryLeaks();</span><br></pre></td></tr></table></figure>
+
+<h2 id="例子"><span class="post-title-index">2  </span><a href="#例子" class="headerlink" title="例子"></a>例子</h2><p>现在来看一个简单的例子，编写如下程序：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;crtdbg.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span>* var = <span class="keyword">new</span> <span class="type">int</span>[<span class="number">10</span>];</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意要以<strong>调试模式</strong>运行该程序，如果不以调试模式运行则<strong>不会</strong>显示内存泄漏报告。</p>
+<p>可以看到以下输出</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Detected memory leaks!</span><br><span class="line">Dumping objects -&gt;</span><br><span class="line">&#123;105&#125; normal block at 0x00D68830, 40 bytes long.</span><br><span class="line"> Data: &lt;                &gt; CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD </span><br><span class="line">Object dump complete.</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，第一行 <code>Detected memory leaks!</code> 提示我们发现了内存泄漏。</p>
+<ul>
+<li><code>&#123;105&#125;</code> 是内存分配编号。</li>
+<li><code>normal block</code> 是类型，其他的类型还有 <code>free</code>, <code>ignore</code> 等，详细见参考资料。</li>
+<li><code>0x00D68830</code> 是内存泄漏的地址。</li>
+<li><code>40 bytes</code> 是内存泄漏的大小，因为我们分配了 10 个 <code>int</code>，正好是 <code>40 bytes</code>。</li>
+<li><code>CD CD CD ...</code> 是这块内存中的数据（十六进制表示）。</li>
+</ul>
+<h2 id="常见问题"><span class="post-title-index">3  </span><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="define-CRTDBG-MAP-ALLOC-不输出详细信息"><span class="post-title-index">3.1  </span><a href="#define-CRTDBG-MAP-ALLOC-不输出详细信息" class="headerlink" title="#define _CRTDBG_MAP_ALLOC 不输出详细信息"></a>#define _CRTDBG_MAP_ALLOC 不输出详细信息</h3><p>可以观察到，虽然我们在代码中添加了 <code>#define _CRTDBG_MAP_ALLOC</code>，输出中仍然没有出现详细信息。如果没有显示代码的位置和行号，那么非常不利于我们调试代码。</p>
+<p>解决方法是添加如下语句。</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> _DEBUG</span></span><br><span class="line">    <span class="meta">#<span class="keyword">define</span> MYDEBUG_NEW new( _NORMAL_BLOCK, __FILE__, __LINE__)</span></span><br><span class="line">    <span class="meta">#<span class="keyword">define</span> new MYDEBUG_NEW</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">    <span class="meta">#<span class="keyword">define</span> MYDEBUG_NEW</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;crtdbg.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span>* var = <span class="keyword">new</span> <span class="type">int</span>[<span class="number">10</span>];</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再次以调试模式运行该程序，发现正确输出了<strong>文件名</strong>和<strong>行号</strong>信息</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Detected memory leaks!</span><br><span class="line">Dumping objects -&gt;</span><br><span class="line">C:\path\main.cpp(13) : &#123;105&#125; normal block at 0x009F8830, 40 bytes long.</span><br><span class="line"> Data: &lt;                &gt; CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD </span><br><span class="line">Object dump complete.</span><br></pre></td></tr></table></figure>
+
+<p>可以看到内存泄漏发生在 <code>main.cpp</code> 的 13 行处。</p>
+<h3 id="使用-libeigen-时检测到内存泄漏"><span class="post-title-index">3.2  </span><a href="#使用-libeigen-时检测到内存泄漏" class="headerlink" title="使用 libeigen 时检测到内存泄漏"></a>使用 libeigen 时检测到内存泄漏</h3><p>在使用 Eigen 库时，会检测到内存泄漏，如下代码所示。</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 前面的重复代码省略</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;eigen3/Eigen/Dense&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">using</span> RowMajorMat = Eigen::Matrix&lt;<span class="type">float</span>, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor&gt;;</span><br><span class="line">    <span class="function">RowMajorMat <span class="title">a</span><span class="params">(<span class="number">1024</span>, <span class="number">4096</span>)</span></span>;</span><br><span class="line">    <span class="function">RowMajorMat <span class="title">b</span><span class="params">(<span class="number">4096</span>, <span class="number">784</span>)</span></span>;</span><br><span class="line">    <span class="type">const</span> <span class="keyword">auto</span> c = a * b;</span><br><span class="line">    std::cout &lt;&lt; <span class="built_in">c</span>(<span class="number">0</span>, <span class="number">0</span>) &lt;&lt; std::endl;</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发现内存泄漏</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">Detected memory leaks!</span><br><span class="line">Dumping objects -&gt;</span><br><span class="line">C:\path\eigen3\Eigen\src\Core\util\Memory.<span class="built_in">h</span>(<span class="number">88</span>) : &#123;<span class="number">176</span>&#125; normal block at <span class="number">0x02446040</span>, <span class="number">12845072</span> bytes <span class="type">long</span>.</span><br><span class="line"> Data: &lt;            @`D &gt; CD CD CD CD CD CD CD CD CD CD CD CD <span class="number">40</span> <span class="number">60</span> <span class="number">44</span> <span class="number">02</span> </span><br><span class="line">C:\path\eigen3\Eigen\src\Core\util\Memory.<span class="built_in">h</span>(<span class="number">88</span>) : &#123;<span class="number">175</span>&#125; normal block at <span class="number">0x01338040</span>, <span class="number">16777232</span> bytes <span class="type">long</span>.</span><br><span class="line"> Data: &lt;            @ <span class="number">3</span> &gt; CD CD CD CD CD CD CD CD CD CD CD CD <span class="number">40</span> <span class="number">80</span> <span class="number">33</span> <span class="number">01</span> </span><br><span class="line">Object dump complete.</span><br></pre></td></tr></table></figure>
+
+<p>但是实际上并没有发生内存泄漏，这是由于变量 <code>a</code>, <code>b</code>, <code>c</code> 在执行 <code>_CrtDumpMemoryLeaks</code> 还没有被销毁。解决方法是加上一个大括号。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">    &#123;</span><br><span class="line">        using RowMajorMat = Eigen::Matrix&lt;float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor&gt;;</span><br><span class="line">        RowMajorMat a(1024, 4096);</span><br><span class="line">        RowMajorMat b(4096, 784);</span><br><span class="line">        const auto c = a * b;</span><br><span class="line">        std::cout &lt;&lt; c(0, 0) &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改后未检测到内存泄漏。</p>
+<h2 id="参考资料"><span class="post-title-index">4  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2>]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>群晖安装 qBittorrent Enhanced Edition</title>
+    <url>/posts/2021/0321092659/</url>
+    <content><![CDATA[<p>群晖安装 qbittorrentee。</p>
+<span id="more"></span>
+
+<h2 id="安装-Docker"><span class="post-title-index">1  </span><a href="#安装-Docker" class="headerlink" title="安装 Docker"></a>安装 Docker</h2><p>安装 qbittorrentee 前，需要先到<strong>套件中心</strong>安装Docker。</p>
+<p>在套件中心搜索 Docker，点击安装套件就可以了。</p>
+<h2 id="安装-qbittorrentee"><span class="post-title-index">2  </span><a href="#安装-qbittorrentee" class="headerlink" title="安装 qbittorrentee"></a>安装 qbittorrentee</h2><h3 id="下载映像"><span class="post-title-index">2.1  </span><a href="#下载映像" class="headerlink" title="下载映像"></a>下载映像</h3><p>打开 Docker，点击左侧的注册表，在右侧的搜索框内搜索 qbittorrentee，选中 superng6&#x2F;qbittorrentee，点击<strong>下载</strong>按钮，选择 latest 下载。</p>
+<img src="/posts/2021/0321092659/docker_search.png" alt="docker_search" width="400">
+
+<h3 id="配置"><span class="post-title-index">2.2  </span><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>下载后，点击左侧的映像选项，可以看到它正在下载，等待其下载完成。</p>
+<p>下载完成后，选中 superng6&#x2F;qbittorrentee:latest 点击上方的<strong>启动</strong>，进行配置。</p>
+<p>首先看到了常规设置的页面，这个页面没有要配置的东西，你可以将容器名称更改为你想要的名称，然后点击<strong>高级设置</strong>。</p>
+<img src="/posts/2021/0321092659/setting1.jpg" alt="setting1" width="600">
+
+<p>将几个页面配置如下：</p>
+<ol>
+<li><p><strong>高级设置</strong>页面</p>
+<p>按需勾选<strong>启动自动重新启动</strong>（将会开机启动）</p>
+<p>查看群晖的 IP 地址，例如我的是 <code>192.168.1.111</code></p>
+<p>勾选<strong>创建桌面快捷方式</strong>，选择<strong>网页</strong>，框内填入 <code>http://192.168.1.111:8888</code>（注意换成自己的 IP，:8888保留）</p>
+</li>
+</ol>
+<img src="/posts/2021/0321092659/setting2.png" alt="setting2" width="400">
+
+<ol start="2">
+<li><p><strong>卷</strong>页面</p>
+<p>打开 File Station，在 <code>docker</code> 文件夹内新建一个 <code>qbittorrentee</code> 文件夹</p>
+<p>点击添加文件夹，将页面按下图配置，其中<strong>文件&#x2F;文件夹</strong>对应的是群晖系统中真实的文件夹，<strong>装载路径</strong>对应的是 Docker 容器内部的文件夹。第二个文件夹是<strong>下载路径</strong>，选一个<strong>你想要的下载路径</strong>即可。</p>
+</li>
+</ol>
+<img src="/posts/2021/0321092659/setting3.png" alt="setting3" width="400">
+
+<ol start="3">
+<li><p><strong>端口设置</strong></p>
+<p>直接按照下图设置即可</p>
+<img src="/posts/2021/0321092659/setting4.png" alt="setting4" width="400">
+</li>
+<li><p><strong>SSH 连接群晖</strong></p>
+<p>进行下一步配置前要使用 SSH 连接群晖，如果不会的话，可以参考下列步骤，会的可以跳到下一步。总体步骤为：</p>
+<p>控制面板 &gt; <strong>高级模式</strong> &gt; <strong>终端机和 SNMP</strong> &gt; <strong>cmd</strong></p>
+<ol>
+<li><p>打开控制面板</p>
+</li>
+<li><p>右上角点击<strong>基本模式</strong>，点击后将会切换到高级模式</p>
+</li>
+<li><p>打开<strong>终端机和 SNMP</strong>，勾选启用 SSH 功能，端口填 22，点击应用。</p>
+<img src="/posts/2021/0321092659/setting6.png" alt="setting6" width="500">
+</li>
+<li><p>查看你的用户名（在控制面板 &gt; 用户账号中可以看到）。</p>
+</li>
+<li><p>打开 cmd，输入 <code>ssh 用户名@192.168.1.111 -p 22</code> 注意换成自己的 IP，按提示输入密码。</p>
+</li>
+<li><p>输入 id 用户名，回车。例如我的用户名是 <code>admin</code>，输入 <code>id admin</code>。记住 <code>uid</code> 和 <code>gid</code> 后面的数字。</p>
+<img src="/posts/2021/0321092659/setting7.png" alt="setting7" width="300"></li>
+</ol>
+</li>
+<li><p><strong>环境</strong></p>
+<p>链接不需要配置，直接打开环境页面。</p>
+<p>将 <code>WEBUIPORT</code> 的值修改为 <code>8888</code>，添加 <code>PGID</code> ，值为刚才记住的 <code>gid</code> 后面的值；添加 <code>PUID</code>, 值为 <code>uid</code> 后面的值。</p>
+<img src="/posts/2021/0321092659/setting5.png" alt="setting5" width="500">
+</li>
+<li><p><strong>点击应用、下一步，运行该容器</strong>。</p>
+</li>
+</ol>
+<h2 id="打开-qibtorrentee"><span class="post-title-index">3  </span><a href="#打开-qibtorrentee" class="headerlink" title="打开 qibtorrentee"></a>打开 qibtorrentee</h2><p>现在桌面上应该出现了一个 qibtorrentee 的图标，打开它。你也可以在浏览器中访问 查看群晖的 IP 地址，例如我的是 <code>192.168.1.111</code>，和 地址:8888 直接打开。</p>
+<p>默认的用户名为 <code>admin</code>，密码为 <code>adminadmin</code>，输入后就可以看到熟悉的界面了。</p>
+<img src="/posts/2021/0321092659/ui.png" alt="ui" width="600">
+
+<p>最后一步，点击<strong>工具</strong> &gt; <strong>选项</strong> &gt; <strong>连接</strong>将监听端口修改为 <code>6991</code>，安装完成。</p>
+<img src="/posts/2021/0321092659/setting8.png" alt="setting8" width="400">
+]]></content>
+      <categories>
+        <category>群晖</category>
+      </categories>
+      <tags>
+        <tag>群晖</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>在 C++ 中调用 keras</title>
+    <url>/posts/2020/0229161832/</url>
+    <content><![CDATA[<p>使用 frugally-deep 在 C++ 中轻松调用 Keras 模型</p>
+<span id="more"></span>
+
+<p>Keras 使用起来非常方便，我们有时候需要在 C++ 中调用训练好的模型，希望在 C++ 中调用 Keras 的 <code>model.predict()</code>，但 Keras 并没有提供 C++ API。一种解决方法是使用 TensorFlow 的 C++ API，但编译过程非常繁琐，容易失败。这里我们使用另一种方法，使用 Github 上的 <a href="https://github.com/Dobiasd/frugally-deep">frugally-deep</a>。</p>
+<h2 id="介绍"><span class="post-title-index">1  </span><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>frugally-deep 是一个用 C++ 实现的库，它可以将 Keras 保存的 <code>.h5</code> 文件直接转为 C++ 中可调用的 <code>.json</code> 文件，经过一步转换后就可以直接调用。frugally-deep 使用起来比较简单，支持非常多常用的模型，无需编译 TensorFlow。同时它也是线程安全的，可以很方便的在多 CPU 上进行前向传播。另外，frugally-deep 不支持使用 GPU，如果不是必须要使用 GPU，frugally-deep 是一个很好的选择。</p>
+<h3 id="支持的模型"><span class="post-title-index">1.1  </span><a href="#支持的模型" class="headerlink" title="支持的模型"></a>支持的模型</h3><p>frugally-deep 支持大多数常用的模型</p>
+<ul>
+<li><code>Add</code>, <code>Concatenate</code>, <code>Subtract</code>, <code>Multiply</code>, <code>Average</code>, <code>Maximum</code></li>
+<li><code>AveragePooling1D/2D</code>, <code>GlobalAveragePooling1D/2D</code></li>
+<li><code>Bidirectional</code>, <code>TimeDistributed</code>, <code>GRU</code>, <code>LSTM</code>, <code>CuDNNGRU</code>, <code>CuDNNLSTM</code></li>
+<li><code>Conv1D/2D</code>, <code>SeparableConv2D</code>, <code>DepthwiseConv2D</code></li>
+<li><code>Cropping1D/2D</code>, <code>ZeroPadding1D/2D</code></li>
+<li><code>BatchNormalization</code>, <code>Dense</code>, <code>Flatten</code></li>
+<li><code>Dropout</code>, <code>AlphaDropout</code>, <code>GaussianDropout</code>, <code>GaussianNoise</code></li>
+<li><code>SpatialDropout1D</code>, <code>SpatialDropout2D</code>, <code>SpatialDropout3D</code></li>
+<li><code>MaxPooling1D/2D</code>, <code>GlobalMaxPooling1D/2D</code></li>
+<li><code>ELU</code>, <code>LeakyReLU</code>, <code>ReLU</code>, <code>SeLU</code>, <code>PReLU</code></li>
+<li><code>Sigmoid</code>, <code>Softmax</code>, <code>Softplus</code>, <code>Tanh</code></li>
+<li><code>UpSampling1D/2D</code></li>
+<li><code>Reshape</code>, <code>Permute</code></li>
+<li><code>Embedding</code></li>
+</ul>
+<p>以及</p>
+<ul>
+<li>multiple inputs and outputs</li>
+<li>nested models</li>
+<li>residual connections</li>
+<li>shared layers</li>
+<li>variable input shapes</li>
+<li>arbitrary complex model architectures &#x2F; computational graphs</li>
+<li>custom layers (by passing custom factory functions to <code>load_model</code>)</li>
+</ul>
+<h2 id="安装"><span class="post-title-index">2  </span><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p>frugally-deep 的安装很简单，可以使用官方安装教程 <a href="https://github.com/Dobiasd/frugally-deep/blob/master/INSTALL.md">INSTALL.md</a> 上的命令安装，也可以直接下载源码。使用命令安装的方法在官方的教程中已经很详细了，所以这里采用直接下载源码的方式。</p>
+<p>使用 frugally-deep 前需要有 (截止2020年6月13日)</p>
+<ul>
+<li>一个支持 C++14 的编译器</li>
+<li>Python 版本在 3.7 或以上</li>
+<li>TensorFlow 2.1.1</li>
+</ul>
+<p>如果你正在使用 Tensorflow 1.x 的 Keras，安装 TensorFlow 2.x.x 后大多数情况下只需要把 <code>import keras</code> 修改为 <code>import tensorflow.keras</code> 即可，Keras 的改动并不大。</p>
+<h3 id="下载源码"><span class="post-title-index">2.1  </span><a href="#下载源码" class="headerlink" title="下载源码"></a>下载源码</h3><p>分别前往<a href="https://github.com/Dobiasd/frugally-deep">frugally-deep</a>, <a href="https://github.com/Dobiasd/FunctionalPlus">FunctionalPlus</a> , <a href="https://gitlab.com/libeigen/eigen#">Eigen</a> 和 <a href="https://github.com/nlohmann/json">json</a> 点击右侧的 Code 再点击 Download ZIP 下载这些源码。(Gitlab 直接点击下载)</p>
+<h3 id="解压"><span class="post-title-index">2.2  </span><a href="#解压" class="headerlink" title="解压"></a>解压</h3><p>假设现在代码根目录下的源文件只有 <code>main.cpp</code>，文件结构为：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">+-- main.cpp</span><br></pre></td></tr></table></figure>
+
+<p>将 frugally-deep 源码中的 include 文件夹和 keras_export 文件夹解压到与 <code>main.cpp</code> 相同的目录下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">+-- include</span><br><span class="line">|   +-- fdeep</span><br><span class="line">+-- keras_export</span><br><span class="line">+-- main.cpp</span><br></pre></td></tr></table></figure>
+
+<p>将 FunctionalPlus 源码中 include 文件夹内的 fplus 文件夹复制到 <code>main.cpp</code> 相同目录下的 include 文件夹内：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">+-- include</span><br><span class="line">|   +-- fdeep</span><br><span class="line">|   +-- fplus</span><br><span class="line">+-- keras_export</span><br><span class="line">+-- main.cpp</span><br></pre></td></tr></table></figure>
+
+<p>同样，将 json 源码中 include 文件夹内的 nlohmann 文件夹复制到 <code>main.cpp</code> 相同目录下的 include 文件夹内：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">+-- include</span><br><span class="line">|   +-- fdeep</span><br><span class="line">|   +-- fplus</span><br><span class="line">|   +-- nolhmann</span><br><span class="line">+-- keras_export</span><br><span class="line">+-- main.cpp</span><br></pre></td></tr></table></figure>
+
+<p>最后将 eigen 源码中 Eigen 文件夹放在 <code>main.cpp</code> 相同目录下的 include 文件夹内</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">+-- include</span><br><span class="line">|   +-- Eigen</span><br><span class="line">|   +-- fdeep</span><br><span class="line">|   +-- fplus</span><br><span class="line">|   +-- nolhmann</span><br><span class="line">+-- keras_export</span><br><span class="line">+-- main.cpp</span><br></pre></td></tr></table></figure>
+
+<p>需要的文件已经安装完成，下面可以开始使用了。</p>
+<h2 id="使用"><span class="post-title-index">3  </span><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>总的来说，使用 frugally-deep 的步骤为：</p>
+<ol>
+<li>在 Python 中训练好模型后，使用 <code>model.save(&#39;....h5&#39;, include_optimizer=False)</code> 保存模型</li>
+<li>使用 <code>keras_export/convert_model.py</code> 将 <code>.h5</code> 模型转换成 C++ 模型</li>
+<li>在 C++ 中使用 <code>fdeep::load_model(...)</code> 加载模型</li>
+<li>在 C++ 中使用 <code>model.predict(...)</code> 调用模型</li>
+</ol>
+<p>下面我们以 frugally-deep <a href="https://github.com/Dobiasd/frugally-deep">主页</a> 上的例子来说明如何使用。假设我们在 Python 中编写了模型</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># create_model.py</span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> tensorflow.keras.layers <span class="keyword">import</span> Input, Dense</span><br><span class="line"><span class="keyword">from</span> tensorflow.keras.models <span class="keyword">import</span> Model</span><br><span class="line"></span><br><span class="line">inputs = Input(shape=(<span class="number">4</span>,))</span><br><span class="line">x = Dense(<span class="number">5</span>, activation=<span class="string">&#x27;relu&#x27;</span>)(inputs)</span><br><span class="line">predictions = Dense(<span class="number">3</span>, activation=<span class="string">&#x27;softmax&#x27;</span>)(x)</span><br><span class="line">model = Model(inputs=inputs, outputs=predictions)</span><br><span class="line">model.<span class="built_in">compile</span>(loss=<span class="string">&#x27;categorical_crossentropy&#x27;</span>, optimizer=<span class="string">&#x27;nadam&#x27;</span>)</span><br><span class="line"></span><br><span class="line">model.fit(</span><br><span class="line">    np.asarray([[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>], [<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]]),</span><br><span class="line">    np.asarray([[<span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>], [<span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>]]), epochs=<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">model.save(<span class="string">&#x27;keras_model.h5&#x27;</span>, include_optimizer=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+
+<p>运行 <code>create_model.py</code> 后，当前目录下生成了 <code>keras_model.h5</code>，接下来使用下面的命令进行转换</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">python keras_export/convert_model.py keras_model.h5 fdeep_model.json</span><br></pre></td></tr></table></figure>
+
+<p>看到下面这些就是转换成功了，转换成功后，当前目录下会生成 <code>fdeep_model.json</code>，在 C++ 中读取 <code>fdeep_model.json</code> 就可以直接调用了。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Forward pass took 0.091729 s.</span><br><span class="line">Forward pass took 0.038896 s.</span><br><span class="line">Forward pass took 0.077791 s.</span><br><span class="line">Starting performance measurements.</span><br><span class="line">Forward pass took 0.037899 s.</span><br><span class="line">Forward pass took 0.037896 s.</span><br><span class="line">Forward pass took 0.043883 s.</span><br><span class="line">Forward pass took 0.038922 s.</span><br><span class="line">Forward pass took 0.042861 s.</span><br><span class="line">Forward pass took 0.04029220000000001 s on average.</span><br><span class="line">Converting model architecture.</span><br><span class="line">Converting model weights.</span><br><span class="line">Done converting model weights.</span><br><span class="line">Calculating model hash.</span><br><span class="line">Model conversion finished.</span><br><span class="line">writing fdeep_model.json</span><br></pre></td></tr></table></figure>
+
+<p>转换过程中，frugally-deep 会自动对模型进行测试，验证相同的输入下 ，模型在 Python 和 C++ 中的输出是否相同。若输出不同会直接报错，所以不必担心转换出错。</p>
+<p>转换完成后，在 C++ 中进行调用</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// main.cpp</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fdeep/fdeep.hpp&gt;</span></span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">const</span> <span class="keyword">auto</span> model = fdeep::<span class="built_in">load_model</span>(<span class="string">&quot;fdeep_model.json&quot;</span>);</span><br><span class="line">    <span class="type">const</span> <span class="keyword">auto</span> result = model.<span class="built_in">predict</span>(</span><br><span class="line">        &#123;fdeep::<span class="built_in">tensor</span>(fdeep::<span class="built_in">tensor_shape</span>(<span class="built_in">static_cast</span>&lt;std::<span class="type">size_t</span>&gt;(<span class="number">4</span>)),</span><br><span class="line">        &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>&#125;)&#125;);</span><br><span class="line">    std::cout &lt;&lt; fdeep::<span class="built_in">show_tensors</span>(result) &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这时，以 Visual Studio 为例，编译器会报错</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">fatal error C1083: 无法打开包括文件: “fdeep/fdeep.hpp”: No such file or directory</span><br></pre></td></tr></table></figure>
+
+<p>这是因为还没有添加<strong>附加包含目录</strong>，右键点击**”解决方案资源管理器”<strong>中的</strong>项目名称<strong>，选择</strong>属性** -&gt; <strong>配置属性</strong> -&gt; <strong>C&#x2F;C++</strong> -&gt; <strong>常规</strong>，在右侧的附加包含目录中填上 <code>$(ProjectDir)include;</code> 若使用的是 gcc 编译器，要在编译时加上参数 <code>-Iinclude</code></p>
+<p>再次运行 <code>main.cpp</code>，输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Loading json ... done. elapsed time: 0.009921 s</span><br><span class="line">Building model ... done. elapsed time: 0.018725 s</span><br><span class="line">Running test 1 of 1 ... done. elapsed time: 0.003242 s</span><br><span class="line">Loading, constructing, testing of fdeep_model.json took 0.038064 s overall.</span><br><span class="line">[[[[[[[0.7297, 0.1624, 0.1078]]]]]]]</span><br></pre></td></tr></table></figure>
+
+<p>成功输出了结果，调用成功。另外，<code>model.predict()</code> 是<strong>线程安全</strong>的，可以直接在多个线程中调用。如果想在多 CPU 上并行预测，使用 <code>model::predict_multi</code> 就会自动在多 CPU 上执行 <code>model.predict()</code>。要注意的是，<code>model::predict_multi</code> 的并行是对多个输入数据的并行，并不是对一个数据的并行。</p>
+<h2 id="常见问题"><span class="post-title-index">4  </span><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="model-predict-的输入输出类型"><span class="post-title-index">4.1  </span><a href="#model-predict-的输入输出类型" class="headerlink" title="model.predict() 的输入输出类型"></a>model.predict() 的输入输出类型</h3><p>model.predict() 的输入类型是 <code>fdeep::tensor</code>，下面的例子说明了如何声明一个 <code>fdeep::tensor</code> 并初始化</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 声明一个tensor，形状参数在fdeep::tensor_shape()中，0是初始化的值</span></span><br><span class="line"><span class="function">fdeep::tensor <span class="title">t</span><span class="params">(fdeep::tensor_shape(<span class="number">3</span>, <span class="number">1</span>, <span class="number">1</span>), <span class="number">0</span>)</span></span>;</span><br><span class="line"><span class="comment">// 对tensor赋值最简单的方法是使用t.set()</span></span><br><span class="line">t.<span class="built_in">set</span>(fdeep::<span class="built_in">tensor_pos</span>(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>), <span class="number">1</span>);</span><br><span class="line">t.<span class="built_in">set</span>(fdeep::<span class="built_in">tensor_pos</span>(<span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>), <span class="number">2</span>);</span><br><span class="line">t.<span class="built_in">set</span>(fdeep::<span class="built_in">tensor_pos</span>(<span class="number">2</span>, <span class="number">0</span>, <span class="number">0</span>), <span class="number">3</span>);</span><br><span class="line"><span class="comment">// 赋值后即可传入model.predict()</span></span><br><span class="line"><span class="type">const</span> <span class="keyword">auto</span> result = model.<span class="built_in">predict</span>(t);</span><br></pre></td></tr></table></figure>
+
+<p>有了 <code>fdeep::tensor</code> 我们可能会需要将其转化为 <code>std::vector</code> 进行后续的操作</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 将tensor转为std::vector</span></span><br><span class="line"><span class="type">const</span> std::vector&lt;<span class="type">float</span>&gt; vec = t.<span class="built_in">to_vector</span>();</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，<code>model.predict()</code> 返回的类型是 <code>fdeep::tensors</code> 而不是<code>fdeep::tensor</code>。实际上 <code>fdeep::tensors</code> 是作者给 <code>std::vector&lt;tensor&gt;</code> 定义的别名，若想将其转为 <code>vector</code>，可使用</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 将vector&lt;tensor&gt;中的第一个tensor转为vector&lt;float&gt;</span></span><br><span class="line"><span class="type">const</span> <span class="keyword">auto</span> result_vec = result.<span class="built_in">front</span>().<span class="built_in">to_vector</span>();</span><br></pre></td></tr></table></figure>
+
+<p>除此之外，其他的方法可以参考官方 <a href="https://github.com/Dobiasd/frugally-deep/blob/master/FAQ.md">FAQ.md</a>。要注意，frugally-deep 中必须采用 channel-last 的格式。</p>
+<h3 id="error-C2653"><span class="post-title-index">4.2  </span><a href="#error-C2653" class="headerlink" title="error C2653:"></a>error C2653:</h3><p>使用 Visual Studio 2019 时可能会遇到这个问题</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">error C2653: &#x27;FOut&#x27;: is not a class or namespace name</span><br></pre></td></tr></table></figure>
+
+<p>这是一个编译器 BUG，详见 <a href="https://github.com/Dobiasd/FunctionalPlus/issues/159">Github issue</a> ，<a href="https://developercommunity.visualstudio.com/content/problem/815759/compiler-bug-getting-c2563-error-on-version-1633.html">微软官方称已经在 16.5 Preview 2 版本中修复</a>，但是目前升级到最新版 16.6 后仍有很多人反应存在此问题，解决方法是使用 Visual Studio 2017 或 gcc 编译器。</p>
+<h3 id="fdeep-model-没有默认构造函数"><span class="post-title-index">4.3  </span><a href="#fdeep-model-没有默认构造函数" class="headerlink" title="fdeep::model 没有默认构造函数"></a>fdeep::model 没有默认构造函数</h3><p>当使用 <code>fdeep::model</code> 作为类的成员变量时，会遇到 <code>fdeep::model 没有默认构造函数</code> 的问题，这是作者刻意为之的，解决方法是使用<code>std::unique_ptr&lt;fdeep::model&gt;</code></p>
+<p>下面的例子说明了如何使用</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// neural_network.h</span></span><br><span class="line"><span class="meta">#<span class="keyword">pragma</span> once</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fdeep/fdeep.hpp&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">NeuralNetwork</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::unique_ptr&lt;fdeep::model&gt; model;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">NeuralNetwork</span>();</span><br><span class="line">    <span class="function">fdeep::tensors <span class="title">predict</span><span class="params">(fdeep::tensor&amp; t)</span></span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// neural_network.cpp</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;neural_network.h&quot;</span></span></span><br><span class="line"></span><br><span class="line">NeuralNetwork::<span class="built_in">NeuralNetwork</span>()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">this</span>-&gt;model = std::<span class="built_in">make_unique</span>&lt;fdeep::model&gt;(fdeep::<span class="built_in">load_model</span>(<span class="string">&quot;fdeep_model.json&quot;</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">fdeep::tensors <span class="title">NeuralNetwork::predict</span><span class="params">(fdeep::tensor&amp; t)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>-&gt;model-&gt;<span class="built_in">predict</span>(&#123; t &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="运行速度比-Python-慢-100-倍"><span class="post-title-index">4.4  </span><a href="#运行速度比-Python-慢-100-倍" class="headerlink" title="运行速度比 Python 慢 100 倍"></a>运行速度比 Python 慢 100 倍</h3><p>这是因为编译器没有开优化。若使用 Visual Studio ，要把”Debug”模式改为”Release”模式。 gcc 要开 -O3 优化。修改后就正常了。参考<a href="https://github.com/Dobiasd/frugally-deep/blob/master/FAQ.md">FAQ.md</a></p>
+<h2 id="总结"><span class="post-title-index">5  </span><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>如果你需要在 C++ 中调用 <code>model.predict()</code> 且没有使用 GPU 的需求，frugally-deep 是一个很好的选择。</p>
+<p>还想了解更多可以阅读官方的英文资料 <a href="https://github.com/Dobiasd/frugally-deep">frugally-deep</a></p>
+<h2 id="参考资料"><span class="post-title-index">6  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://github.com/Dobiasd/frugally-deep">https://github.com/Dobiasd/frugally-deep</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>机器学习</category>
+      </categories>
+      <tags>
+        <tag>C++</tag>
+        <tag>机器学习</tag>
+        <tag>keras</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>蒙特卡洛树搜索 MCTS</title>
+    <url>/posts/2019/1028154602/</url>
+    <content><![CDATA[<p>【内容简介】蒙特卡洛树搜索(Monte Carlo Tree Search) ，是一种寻找最优决策的方法。</p>
+<span id="more"></span>
+
+<p><strong>蒙特卡洛树搜索</strong>(Monte Carlo Tree Search) 是一种寻找最优决策的方法，在AlphaGo中被运用，其主要分为四步：<strong>选择</strong>(Selection)，<strong>拓展</strong>(Expansion)，<strong>模拟</strong>(Simulation)，<strong>反向传播</strong>(Backpropagation)。 本文以<strong>井字棋</strong>为例对这一方法进行介绍。</p>
+<h2 id="基础知识"><span class="post-title-index">1  </span><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><p>介绍 MCTS 的具体搜索算法之前，先介绍一下 MCTS 的基础知识。</p>
+<h3 id="节点"><span class="post-title-index">1.1  </span><a href="#节点" class="headerlink" title="节点"></a>节点</h3><p>在棋类问题中，MCTS 使用一个<strong>节点</strong>来表示一个<strong>游戏状态</strong>，换句话说，每一个节点都对应着井字棋中的一种情况。假设现在井字棋的棋盘上只有中间一个棋子，图中用 ○ 画出，我们用一个节点表示这个游戏状态，这个节点就是下图中的根节点。这时，下一步棋有 8 种下法，所以对应的，这个根节点就有 8 个子节点（受图片大小限制，图中只画出了 3 个）。</p>
+<p><strong>下完一步后，游戏还没有结束，棋盘上还可以继续下棋，继续按照刚才的方法，一个节点表示一个游戏状态，这些子节点又有子节点，所有的井字棋游戏状态都可以被这样表示，于是它们就构成了一个树。</strong>对于围棋或者其他更复杂的棋类也是一样，只不过这个树会更大、更复杂。蒙特卡洛树搜索就是要在这样一个树中搜索出下一步在哪个位置下棋最有可能获胜，即根节点的哪个子节点获胜概率最高。</p>
+<img src="/posts/2019/1028154602/节点.png" alt="节点" width="400">
+
+<h3 id="节点的两个属性"><span class="post-title-index">1.2  </span><a href="#节点的两个属性" class="headerlink" title="节点的两个属性"></a>节点的两个属性</h3><p>在蒙特卡洛树搜索中，我们将节点记作 $v$，在搜索过程中需要记录节点的访问次数和累计奖励，它们的表示符号如下：</p>
+<ol>
+<li>$N(v)$：节点 $v$ 的<strong>访问次数</strong>，节点在搜索过程中被访问多少次，该值就是多少。</li>
+<li>$Q(v)$：节点 $v$ 的<strong>累计奖励</strong>，即节点在反向传播过程中获得的所有奖励(reward)求和。</li>
+</ol>
+<p>所谓的**奖励(reward)**是一个数值，游戏结束时若获胜，奖励为 1，若失败，奖励为 0。</p>
+<h2 id="搜索过程"><span class="post-title-index">2  </span><a href="#搜索过程" class="headerlink" title="搜索过程"></a>搜索过程</h2><p>下面介绍 MCTS 的具体搜索算法。</p>
+<p>给定当前游戏状态，如何获得下一步的最佳下法呢？对于井字棋来说，当然可以在整个决策树中遍历所有可能性，直接找出最优策略。但若换成围棋等复杂的棋类，遍历的方法是显然不可行的，这时就需要在决策树中有选择地访问节点，并根据现有的有限信息做出最优决策。</p>
+<p>在介绍下面的搜索过程之前，我们首先要知道：蒙特卡洛树搜索搜的是什么？换句话说，假如我们先把 MCTS 看成一个黑盒子，那么它的输入和输出分别是什么？</p>
+<p><strong>输入</strong>：一个游戏状态</p>
+<p><strong>输出</strong>：下一步下棋的位置</p>
+<p><strong>也就是说，给 MCTS 一个棋局，它就告诉你下一步该怎么走。</strong>知道了输入输出分别是什么后，我们再来看看从输入到输出这中间，MCTS 到底做了什么。总的来说，MCTS 按顺序重复执行以下四个步骤：<strong>选择，拓展，模拟，反向传播。</strong></p>
+<h3 id="选择-Selection"><span class="post-title-index">2.1  </span><a href="#选择-Selection" class="headerlink" title="选择(Selection)"></a>选择(Selection)</h3><p><strong>根据上文所述，对于围棋等可能性非常多的问题，遍历的方法不可行，因此 MCTS 有选择地访问节点，这就是选择阶段。</strong>从根节点(就是输入)出发，根据一定的策略，向下选择一个节点进行访问，若被选择的节点未被访问过，则执行扩展；若被选择的节点已被访问，则访问该节点，并继续向下选择节点进行访问，直到遇见未被访问的节点，或遇见终止节点(游戏结束)。</p>
+<p>选择的策略由该公式确定，对当前节点的每个子节点计算如下公式，并选择计算结果最大的节点。<br>$$<br>\underset{v’\in \text{children of }v}{\mathrm{argmax}}\frac{Q\left( v’ \right)}{N\left( v’ \right)}+c\sqrt{\frac{\text{2}\ln N\left( v \right)}{N\left( v’ \right)}}<br>$$<br>其中， $v$ 表示父节点，$v’$ 表示子节点。$c$ 是一个常数，用于权衡<strong>探索 (Exploration)</strong> 与<strong>利用 (Exploitation)<strong>。探索是指选择一些之前没有尝试过的下法，丰富自己的知识，新的知识可能带来不错的结果；而利用是指根据现有的知识选择下法。$c$ 越大，就越偏向于</strong>探索</strong>；$c$ 越小，就越偏向于<strong>利用</strong>。</p>
+<h3 id="扩展-Expansion"><span class="post-title-index">2.2  </span><a href="#扩展-Expansion" class="headerlink" title="扩展 (Expansion)"></a>扩展 (Expansion)</h3><p>MCTS 在搜索的过程中是有选择地访问节点，并把所有访问过的节点构建成一个树。扩展就是把<strong>选择</strong>步骤中遇到的未访问节点添加到树中，然后对该节点执行模拟。</p>
+<h3 id="模拟-Simulation"><span class="post-title-index">2.3  </span><a href="#模拟-Simulation" class="headerlink" title="模拟 (Simulation)"></a>模拟 (Simulation)</h3><p>模拟是一个粗略获取信息的过程。从被扩展的节点开始，对游戏进行模拟，也就是在棋盘上随机下棋，直到<strong>游戏结束</strong>。若此时游戏胜利，则<strong>奖励 (Reward)</strong> 记为 $1$；若游戏失败，<strong>奖励</strong>记为 $0$。</p>
+<p>注：在其他应用中，<strong>奖励</strong>也可是其他值。</p>
+<h3 id="反向传播-Backpropagation"><span class="post-title-index">2.4  </span><a href="#反向传播-Backpropagation" class="headerlink" title="反向传播 (Backpropagation)"></a>反向传播 (Backpropagation)</h3><p>反向传播是将在<strong>模拟</strong>中得到的奖励更新的过程。为什么叫反向传播呢？回顾一下第一步<strong>选择</strong>，我们从根节点向下一步一步地选择节点进行访问，现在我们将沿着这条路逐一更新节点信息，重新回到根节点，所以叫反向传播。</p>
+<p>将获得的奖励记作 $R$，对当前节点，及其路径上的所有节点 $v$，都执行以下操作。<strong>即，更新访问次数，对奖励进行累加。</strong><br>$$<br>N(v)&#x3D;N(v)+1  \\<br>Q(v)&#x3D;Q(v)+R<br>$$<br>我们再回头看看<strong>选择</strong>步骤中的公式<br>$$<br>\underset{v’\in \text{children of }v}{\mathrm{argmax}}\frac{Q\left( v’ \right)}{N\left( v’ \right)}+c\sqrt{\frac{\text{2}\ln N\left( v \right)}{N\left( v’ \right)}}<br>$$<br>可以看到，式中第一项其实就是该节点在前面的过程中获得的平均奖励，自然第一项的值越大，在现有的知识下，选择该节点更有可能获胜。式中第二项，当该节点访问次数占父节点次数的比例越小时，该值越大，表示该节点访问次数很少，可以多进行尝试，获取新的知识，它们也可能获得更丰厚的回报。于是 $c$ 就是控制这两者重要程度的参数。</p>
+<p>这就是**上限置信区间算法 (Upper Confidence Bound )**。</p>
+<h3 id="搜索过程展示"><span class="post-title-index">2.5  </span><a href="#搜索过程展示" class="headerlink" title="搜索过程展示"></a>搜索过程展示</h3><p>下面我们看一张动图以帮助理解，图中节点内数字表示 $Q(v)&#x2F;N(v)$，加粗的线条表示正在访问的路径，折线表示模拟。</p>
+ <div align="center">  
+<img src="/posts/2019/1028154602/搜索过程.gif" alt="搜索过程" width="400">
+
+</div>
+
+<h2 id="搜索结束"><span class="post-title-index">3  </span><a href="#搜索结束" class="headerlink" title="搜索结束"></a>搜索结束</h2><p>MCTS 的整个过程就是这样，那么什么时候结束呢？一般设置以下两个终止条件。</p>
+<ol>
+<li>设置最大根节点搜索次数，达到该次数后结束搜索。</li>
+<li>设置最大搜索时间，超过时间后结束搜索。</li>
+</ol>
+<p><strong>结束后，就输出当前状态下，下一步下棋的位置。</strong></p>
+<h2 id="选择最佳节点"><span class="post-title-index">4  </span><a href="#选择最佳节点" class="headerlink" title="选择最佳节点"></a>选择最佳节点</h2><p>搜索结束后，如何选择下一步下棋的位置呢？</p>
+<p><strong>不是选择 $Q$ 最大的节点，也不是选择平均奖励最大的节点，而是选择访问次数最多的节点。这样，就得到了当前游戏状态(根节点)下的一个选择。</strong>或者，也可以将访问次数归一化，作为下一步的概率。</p>
+<p>如果下一步还要进行决策，则又要将下一步的状态作为根节点，重新执行 MCTS，并选择访问次数最多的节点作为下一步的策略。(上一步的搜索结果可以保留)</p>
+<p>以上只是 MCTS 的简单介绍，想更详细的了解 MCTS 可以参考论文 <a href="http://www.researchgate.net/publication/235985858_A_Survey_of_Monte_Carlo_Tree_Search_Methods">A Survey of Monte Carlo Tree Search Methods</a></p>
+<p>另外，Github 上也已经有 MCTS 的 Python 实现源码 <a href="https://github.com/pbsinclair42/MCTS%E3%80%82%E6%96%87%E6%A1%A3%E6%AF%94%E8%BE%83%E5%85%A8%EF%BC%8C%E6%9C%89%E8%AF%A6%E7%BB%86%E7%9A%84%E4%BE%8B%E5%AD%90%E3%80%82">https://github.com/pbsinclair42/MCTS。文档比较全，有详细的例子。</a></p>
+]]></content>
+      <categories>
+        <category>机器学习</category>
+      </categories>
+      <tags>
+        <tag>mcts</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>马尔可夫决策 MDP 基本概念 (二)</title>
+    <url>/posts/2020/1008154826/</url>
+    <content><![CDATA[<p>本文将介绍值函数 (Value function) 与马尔可夫决策过程(Markov Decision Processes, MDP)。</p>
+<span id="more"></span>
+
+<p>上一节：<a href="https://iqhy.github.io/posts/2020/0619232437/">马尔可夫决策 MDP 基本概念 (一)</a></p>
+<h2 id="前言"><span class="post-title-index">1  </span><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>上一节介绍了马尔可夫过程和马尔可夫奖励过程 (Markov Reward Processes, MRP)，这一节我们将介绍值函数 (Value function) 与马尔可夫决策过程。</p>
+<h2 id="值函数"><span class="post-title-index">2  </span><a href="#值函数" class="headerlink" title="值函数"></a>值函数</h2><p>值函数 $v(s)$ 定义为回报 $G_t$ 的数学期望，即<br>$$<br>v(s)&#x3D;\mathbb{E}[G_t|S_t&#x3D;s]<br>$$<br>$v(s)$ 的意义为从状态 $s$ 开始，获得的 $G_t$ 的数学期望。回顾一下，$G_t$ 的计算公式为<br>$$<br>G_t&#x3D;R_{t+1}+\gamma R_{t+2}+…&#x3D;\sum_{k&#x3D;0}^{\infty}{\gamma ^kR_{t+k+1}}<br>$$<br>上一节中提到，某学生的学习过程可以有很多种，如下所示：</p>
+<ul>
+<li>C1 C2 C3 Pass Sleep，$G_1&#x3D;-2.25$</li>
+<li>C1 FB FB C1 C2 Sleep，$G_1&#x3D;-3.125$</li>
+<li>C1 C2 C3 Pub C2 C3 Pass Sleep，$G_1&#x3D;-3.41$</li>
+<li>C1 FB FB C1 C2 C3 Pub C1 … ，$G_1&#x3D;-3.20$</li>
+<li>… …</li>
+</ul>
+<p>令 $\gamma&#x3D;\frac{1}{2}$ ，可计算出每种学习过程的 $G_1$ 。理论上，根据 $v(s)$ 的定义，将所有 $G_1$ 求平均即可得到 $v(s)$。但实际上上述学习过程有无穷多个，因此需要采用其他方法计算 $v(s)$，该方法将在后面介绍。</p>
+<h2 id="马尔可夫决策过程"><span class="post-title-index">3  </span><a href="#马尔可夫决策过程" class="headerlink" title="马尔可夫决策过程"></a>马尔可夫决策过程</h2><p>简单回顾一下，马尔可夫过程建模了环境的变化，可以用数学语言描述该过程；为了让智能体从环境中学习又引入了奖励，有了马尔可夫奖励过程；而智能体需要与环境交互，在前面的模型中，再引入智能体对环境的影响，就有了马尔可夫决策过程，MDP。智能体对环境的影响就通过动作 $\mathcal{A}$ 进行的。</p>
+<h3 id="定义"><span class="post-title-index">3.1  </span><a href="#定义" class="headerlink" title="定义"></a>定义</h3><p>马尔可夫决策过程是可以进行决策的马尔可夫奖励过程，用元组 $&lt;\mathcal{S},\mathcal{A},\mathcal{P},\mathcal{R},\gamma&gt;$ 描述，其中</p>
+<ul>
+<li>$\mathcal{S}$ 是状态集合</li>
+<li>$\mathcal{A}$ <strong>是动作集合</strong></li>
+<li>$\mathcal{P}$ 是状态转移矩阵 (与之前稍有不同)</li>
+<li>$\mathcal{R}$ 是奖励 (与之前稍有不同)</li>
+<li>$\gamma$ 是折损因子</li>
+</ul>
+<p>前面提到，MDP 与 MRP 的不同就是引入了 $\mathcal{A}$，即智能体可以对环境产生影响。那么这个影响体现在哪里呢，就体现在 $\mathcal{P}$ 和 $\mathcal{R}$ 上。MDP 中的 $\mathcal{P}$ 和 $\mathcal{R}$ 不再只和状态有关，还和动作 $a\in \mathcal{A}$ 有关。智能体执行了不同的动作，会使环境的状态转移概率不同，也会收到不同的奖励值。</p>
+<p>如下图所示，是一个描述学生学习的 MDP，其中的红色字体代表动作。现在，学生采取不同的动作，会进入不同的状态，也会获得不同的奖励。例如，在 Class 1 继续学习会获得 $-2$ 的奖励，并进入状态 Class 2；而在 Class 1 采取动作 Facebook 则会获得 $-1$ 的奖励，并进入状态 Facebook。采取同一动作也可能进入不同的状态，如在 Class 3 采取动作 Pub，则有 0.2 的概率进入 Class 1，0.4 的概率进入 Class 2，0.4 的概率进入 Class 3。</p>
+<img src="/posts/2020/1008154826/mdp1.svg" alt="mdp1" style="zoom: 40%;">
+
+<h3 id="策略-policy"><span class="post-title-index">3.2  </span><a href="#策略-policy" class="headerlink" title="策略 (policy)"></a>策略 (policy)</h3><p>MDP 中的一个重要概念是策略，一个策略 $\pi$ 是关于状态的概率分布，定义为<br>$$<br>\pi(a|s)&#x3D;\mathbb{P}{A_t&#x3D;a|S_t&#x3D;s}<br>$$<br>其意义为在状态 $s$ 采取每个动作的概率，有以下性质</p>
+<ul>
+<li>一个策略完全定义了智能体的行为</li>
+<li>MDP 中的策略完全取决于当前状态</li>
+<li>策略与时间无关</li>
+</ul>
+]]></content>
+      <categories>
+        <category>MDP</category>
+      </categories>
+      <tags>
+        <tag>机器学习</tag>
+        <tag>MDP</tag>
+        <tag>强化学习</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>马尔可夫决策 MDP 基本概念 (一)</title>
+    <url>/posts/2020/0619232437/</url>
+    <content><![CDATA[<p>本文将简要介绍马尔可夫过程 (Markov Processes) 与马尔可夫奖励过程 (Markov Reward Processes)。</p>
+<span id="more"></span>
+
+<h2 id="前言"><span class="post-title-index">1  </span><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近准备写一个系列，从马尔可夫决策过程(<strong>Markov Decision Processes, MDP</strong>) 到部分可观测马尔可夫决策过程 (<strong>Partially Observable Markov Decision Processes, POMDP</strong>), 再到分布式马尔可夫决策过程 (<strong>Decentralized Markov Decision Processes, Dec-MDP</strong>)。</p>
+<p>要了解 MDP ，首先要了解马尔可夫过程 (<strong>Markov Processes</strong>)和马尔可夫奖励过程 (<strong>Markov Reward Processes</strong>)，这两者是 MDP 的基础。本文将按如下顺序介绍:</p>
+<ol>
+<li>马尔可夫过程 (Markov Processes)</li>
+<li>马尔可夫奖励过程 (Markov Reward Processes)</li>
+<li>马尔可夫决策过程 (Markov Decision Processes)</li>
+</ol>
+<h2 id="马尔可夫过程-Markov-Processes"><span class="post-title-index">2  </span><a href="#马尔可夫过程-Markov-Processes" class="headerlink" title="马尔可夫过程 (Markov Processes)"></a>马尔可夫过程 (Markov Processes)</h2><h3 id="马尔可夫性质-Markov-Property"><span class="post-title-index">2.1  </span><a href="#马尔可夫性质-Markov-Property" class="headerlink" title="马尔可夫性质 (Markov Property)"></a>马尔可夫性质 (Markov Property)</h3><p>马尔可夫过程为什么叫这个名字呢，因为它具有马尔可夫性质。马尔可夫性质简而言之，就是<strong>未来发生的事情只与当前状态有关而与过去无关</strong>，是一个<strong>无记忆</strong>的过程，它要求状态包含可能对未来产生影响的所有信息。</p>
+<p>举例说明，假设每天的天气有三种状态：晴天、阴天、下雨。我们将第 $i$ 天的状态记为 $S_i$ 。若第 7 天下雨，那么有<br>$$<br>S_7&#x3D;下雨<br>$$<br>如果我们假设 $S_i$ 仅取决于 $S_{i-1}$ ，即第 $i$ 天的天气仅取决于第 $i-1$ 天的天气，这就满足马尔可夫性，用数学公式来描述就是<br>$$<br>\mathbb{P}\left[ S_{t+1}|S_t \right] &#x3D;\mathbb{P}\left[ S_{t+1}|S_t,S_{t-1},…,S_1 \right]<br>$$</p>
+<p>举例说明，若第 6 天天晴，则第七天有0.2的概率下雨；若第 6 天阴天，则第七天有0.3 的概率下雨；若第 6 天阴天，则第七天有 0.5 的概率下雨；第 7 天下雨的概率只与第 6 天的天气有关，而与前面 5 天的状态无关。</p>
+<h3 id="状态转移矩阵-State-Transition-Matrix"><span class="post-title-index">2.2  </span><a href="#状态转移矩阵-State-Transition-Matrix" class="headerlink" title="状态转移矩阵 (State Transition Matrix)"></a>状态转移矩阵 (State Transition Matrix)</h3><p>很容易可以看出来，由于只有三种天气，前后两天的天气组合共有 $3\times 3&#x3D;9$ 种，那么总共就有 9 种天气变化的概率，它们叫作<strong>状态转移概率</strong>。将这 9 个概率按一定规则写进矩阵，就是<strong>状态转移矩阵</strong>。</p>
+<p>那这个规则是怎样的呢？若我们将天晴、阴天、下雨这三种状态编号为 1、2、3，则状态转移矩阵中的第 $i$ 行，第 $j$ 列的元素意义如下<br>$$<br>P_{ij}&#x3D;\mathbb{P}\left[ S_{t+1}&#x3D;\text{状态}i|S_t&#x3D;\text{状态}j \right]<br>$$<br>换句话说，就是前一天天气为状态 $i$，后一天天气为状态 $j$ 的概率，按照这样的规则，整个状态转移矩阵 $P$ 为<br>$$<br>\begin{matrix}<br>    &amp;        \text{to}\newline<br>    P&#x3D;\text{from}&amp;        \left[ \begin{matrix}<br>    P_{11}&amp;        P_{12}&amp;        P_{13}\newline<br>    P_{21}&amp;        P_{22}&amp;        P_{23}\newline<br>    P_{31}&amp;        P_{32}&amp;        P_{33}\newline<br>\end{matrix} \right]\<br>\end{matrix}<br>$$</p>
+<p>不难看出，状态转移矩阵 $P$ 每一行的和都为 1，因为概率之和必为 1。</p>
+<h3 id="马尔可夫过程的定义"><span class="post-title-index">2.3  </span><a href="#马尔可夫过程的定义" class="headerlink" title="马尔可夫过程的定义"></a>马尔可夫过程的定义</h3><p><strong>马尔可夫过程就是具有马尔可夫性的随机过程</strong>，上述天气的例子描述了一个满足马尔可夫性、随着时间的推移，天气不断随机变化的过程，这就是一个马尔可夫过程。马尔可夫过程用元组 $&lt;\mathcal{S},\mathcal{P}&gt;$ 描述。</p>
+<ul>
+<li>$\mathcal{S}$ 是所有状态的集合，在刚才的例子中 $\mathcal{S}$ 就是三种不同的天气组成的集合</li>
+<li>$\mathcal{P}$ 是状态转移矩阵</li>
+</ul>
+<h3 id="例子"><span class="post-title-index">2.4  </span><a href="#例子" class="headerlink" title="例子"></a>例子</h3><p>将前面描述天气变化的马尔可夫过程画成图，如下图所示。马尔可夫过程都可以用这样的图来表示。</p>
+<img src="/posts/2020/0619232437/天气马尔可夫链.jpg" alt="天气马尔可夫链" style="zoom: 40%;">
+
+<p>下面我们看另一个稍微复杂一点的例子，这是一个描述学生学习的马尔可夫过程。在这个例子中，学生共有三节课要学习，在上课过程中，学生有一定概率走神，去刷 Facebook或睡觉，也有可能去酒吧，还有可能坚持把三堂课学完，最终通过考试，按照同样的方法画成图，如下图所示。</p>
+<img src="/posts/2020/0619232437/学生马尔可夫过程.png" alt="学生马尔可夫过程" style="zoom: 40%;">
+
+<p>将其状态转移概率写成状态转移矩阵，如该公式所示，可以看到，该矩阵的每行之和都是1。<br>$$<br>\mathcal{P}&#x3D;\begin{matrix}<br>    &amp;        \begin{matrix}<br>    \text{C}1&amp;        \text{C}2&amp;        \text{C}3&amp;        \text{Pass}&amp;        \text{Pub}&amp;        \text{FB}&amp;        \text{Sleep}\newline<br>\end{matrix}\newline<br>    \begin{array}{l}<br>    \text{C}1\newline<br>    \text{C}2\newline<br>    \text{C}3\newline<br>    \text{Pass}\newline<br>    \text{Pub}\newline<br>    \text{FB}\newline<br>    \text{Sleep}\newline<br>\end{array}&amp;        \left[ \begin{matrix}<br>    \ \ \quad  &amp;        0.5&amp;        \ \ \quad   &amp;        \ \ \quad  &amp;        \ \ \quad   &amp;        0.5&amp;        \ \ \quad   \newline<br>    \ \ &amp;        \ \ &amp;        0.8&amp;        \ \ &amp;        \ \ &amp;        \ \ \qquad&amp;        0.2\newline<br>    \ \ &amp;        \ \ &amp;        \ \ &amp;        0.6&amp;        0.4&amp;        \ \ &amp;        \ \ \newline<br>    \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        1.0\newline<br>    0.2&amp;        0.4&amp;        0.4&amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ \newline<br>    0.1&amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        0.9&amp;        \ \ \newline<br>    \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        \ \ &amp;        1.0\newline<br>\end{matrix} \right]\<br>\end{matrix}<br>$$<br>与刚才天气的例子不同，这个马尔可夫过程有一个终止状态，一旦进入这个状态，整个过程就结束了，这个状态通常可能是游戏结束的状态。为了与其他普通状态一起表示，这个终止状态可以视为以概率 1 转移到自身，这样做的目的是方便处理。</p>
+<h2 id="马尔可夫奖励过程"><span class="post-title-index">3  </span><a href="#马尔可夫奖励过程" class="headerlink" title="马尔可夫奖励过程"></a>马尔可夫奖励过程</h2><p><strong>有奖励的马尔可夫过程就是马尔可夫奖励过程</strong>，为什么需要有奖励呢？</p>
+<p>马尔可夫过程仅仅对环境的变化进行了定义，而我们的最终目的通常是为了让智能体 (agent) 能够在环境中学习出好的策略，智能体怎么学习呢，靠的是奖励。若对我们有利，就给正奖励；若对我们不利，就给负奖励。</p>
+<h3 id="定义"><span class="post-title-index">3.1  </span><a href="#定义" class="headerlink" title="定义"></a>定义</h3><p>马尔可夫奖励过程是带奖励的马尔可夫过程，马尔可夫过程用元组 $&lt;\mathcal{S},\mathcal{P},\mathcal{R},\gamma&gt;$ 描述。</p>
+<ul>
+<li>$\mathcal{S}$ 是所有状态的集合</li>
+<li>$\mathcal{P}$ 是状态转移矩阵</li>
+<li>$\mathcal{R}$ 是奖励</li>
+<li>$\gamma$  是折损因子 (discount factor)，$\gamma \in[0,1]$，这个后面解释，是用来选择“短视”或“远视”的。</li>
+</ul>
+<h3 id="例子-1"><span class="post-title-index">3.2  </span><a href="#例子-1" class="headerlink" title="例子"></a>例子</h3><p>上述学生学习的马尔可夫过程加上奖励后，如下图所示</p>
+<img src="/posts/2020/0619232437/MRP.jpg" alt="MRP" style="zoom:60%;">
+
+<p>学习的目的是为了通过考试，所以给予正奖励；而学习的过程中比较枯燥、辛苦，给负奖励；临时去酒吧能暂时感到快乐，给较小的正奖励。我们最终的目标是为了取得尽可能高的奖励。</p>
+<p>若某学生的学习过程是 C1 C2 C3 Pass Sleep，那么在整个过程中获得的累计奖励是 4；若某学生的学习过程是 C1 FB FB C1 C2 Sleep，那么在整个过程中获得的累计奖励是 -8。</p>
+<h3 id="回报"><span class="post-title-index">3.3  </span><a href="#回报" class="headerlink" title="回报"></a>回报</h3><p>回报 (return) $G_t$ 定义为从时刻 $t$ 开始，之后获取的所有奖励乘上折损因子再求和，即<br>$$<br>G_t&#x3D;R_{t+1}+\gamma R_{t+2}+…&#x3D;\sum_{k&#x3D;0}^{\infty}{\gamma ^kR_{t+k+1}}<br>$$<br>由于 $\gamma \in[0,1]$，$\gamma$ 控制着对未来奖励的关心程度。若 $\gamma&#x3D;0$，$G_t$ 退化为 $G_t&#x3D;R_{t+1}$ 意味着只考虑当前的奖励，不关心未来的奖励，最短视；相应地，若 $\gamma&#x3D;1$，意味着最远视。</p>
+<ul>
+<li>$\gamma$ 越接近 $0$ 则越短视</li>
+<li>$\gamma$ 越接近 $1$ 则越远视</li>
+</ul>
+<h3 id="为什么需要折损因子"><span class="post-title-index">3.4  </span><a href="#为什么需要折损因子" class="headerlink" title="为什么需要折损因子"></a>为什么需要折损因子</h3><p>大多数 MRP 或 MDP 中都引入了折损因子，这是为什么呢？主要有以下几个方面的原因。</p>
+<ul>
+<li>数学处理方便</li>
+<li>防止回报 $G_t$ 趋于正无穷</li>
+<li>模型与现实存在偏差，越远的未来可能偏差越大</li>
+<li>在金融等领域有实际物理意义</li>
+<li>与人类和动物的行为类似，人们更喜欢及时奖励</li>
+</ul>
+<p>要注意的是回报 $G_t$ 与前面在整个过程中获得的累计奖励 $\sum_{t&#x3D;0}^{\infty}{R_t}$ 是不同的，回报是站在当前的视角下考虑未来，因此需要乘上 $\gamma$；在整个过程中获得的累计奖励，是结束后再统计获得的奖励，二者的时间节点是不同的。</p>
+<h2 id="总结"><span class="post-title-index">4  </span><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>马尔可夫过程就是满足马尔可夫性质的随机过程，为了让智能体在环境中学习，引入了奖励，这就是马尔可夫奖励过程。奖励分为即时奖励和未来奖励，折损因子 $\gamma$ 用于平衡“短视”与“远视”。</p>
+<h2 id="参考资料"><span class="post-title-index">5  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://youtu.be/2pWv7GOvuf0">RL Course by David Silver</a></li>
+</ol>
+<p>下一节：未完待续</p>
+]]></content>
+      <categories>
+        <category>MDP</category>
+      </categories>
+      <tags>
+        <tag>机器学习</tag>
+        <tag>MDP</tag>
+        <tag>强化学习</tag>
+      </tags>
+  </entry>
+</search>
