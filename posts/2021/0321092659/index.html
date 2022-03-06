@@ -15,12 +15,12 @@
 
 <link rel="stylesheet" href="/css/main.css">
 
-
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Hiragino Sans GB:300,300italic,400,400italic,700,700italic|web font:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
 <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"iqhy.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+    var CONFIG = {"hostname":"iqhy.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
   <meta name="description" content="群晖安装 qbittorrentee。">
@@ -247,7 +247,7 @@
           
             <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
               <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
+                <i class="fa fa-fa fa-eye"></i>
               </span>
               <span class="post-meta-item-text">阅读次数：</span>
               <span id="busuanzi_value_page_pv"></span>
@@ -264,7 +264,7 @@
                 <i class="fa fa-clock-o"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
+              <span>3 分钟</span>
             </span>
 
         </div>
@@ -279,12 +279,12 @@
         <p>群晖安装 qbittorrentee。</p>
 <span id="more"></span>
 
-<h2 id="安装-Docker"><a href="#安装-Docker" class="headerlink" title="安装 Docker"></a>安装 Docker</h2><p>安装 qbittorrentee 前，需要先到<strong>套件中心</strong>安装Docker。</p>
+<h2 id="安装-Docker"><span class="post-title-index">1  </span><a href="#安装-Docker" class="headerlink" title="安装 Docker"></a>安装 Docker</h2><p>安装 qbittorrentee 前，需要先到<strong>套件中心</strong>安装Docker。</p>
 <p>在套件中心搜索 Docker，点击安装套件就可以了。</p>
-<h2 id="安装-qbittorrentee"><a href="#安装-qbittorrentee" class="headerlink" title="安装 qbittorrentee"></a>安装 qbittorrentee</h2><h3 id="下载映像"><a href="#下载映像" class="headerlink" title="下载映像"></a>下载映像</h3><p>打开 Docker，点击左侧的注册表，在右侧的搜索框内搜索 qbittorrentee，选中 superng6&#x2F;qbittorrentee，点击<strong>下载</strong>按钮，选择 latest 下载。</p>
+<h2 id="安装-qbittorrentee"><span class="post-title-index">2  </span><a href="#安装-qbittorrentee" class="headerlink" title="安装 qbittorrentee"></a>安装 qbittorrentee</h2><h3 id="下载映像"><span class="post-title-index">2.1  </span><a href="#下载映像" class="headerlink" title="下载映像"></a>下载映像</h3><p>打开 Docker，点击左侧的注册表，在右侧的搜索框内搜索 qbittorrentee，选中 superng6&#x2F;qbittorrentee，点击<strong>下载</strong>按钮，选择 latest 下载。</p>
 <img src="/posts/2021/0321092659/docker_search.png" alt="docker_search" width="400">
 
-<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>下载后，点击左侧的映像选项，可以看到它正在下载，等待其下载完成。</p>
+<h3 id="配置"><span class="post-title-index">2.2  </span><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>下载后，点击左侧的映像选项，可以看到它正在下载，等待其下载完成。</p>
 <p>下载完成后，选中 superng6&#x2F;qbittorrentee:latest 点击上方的<strong>启动</strong>，进行配置。</p>
 <p>首先看到了常规设置的页面，这个页面没有要配置的东西，你可以将容器名称更改为你想要的名称，然后点击<strong>高级设置</strong>。</p>
 <img src="/posts/2021/0321092659/setting1.jpg" alt="setting1" width="600">
@@ -339,7 +339,7 @@
 <li><p><strong>点击应用、下一步，运行该容器</strong>。</p>
 </li>
 </ol>
-<h2 id="打开-qibtorrentee"><a href="#打开-qibtorrentee" class="headerlink" title="打开 qibtorrentee"></a>打开 qibtorrentee</h2><p>现在桌面上应该出现了一个 qibtorrentee 的图标，打开它。你也可以在浏览器中访问 查看群晖的 IP 地址，例如我的是 <code>192.168.1.111</code>，和 地址:8888 直接打开。</p>
+<h2 id="打开-qibtorrentee"><span class="post-title-index">3  </span><a href="#打开-qibtorrentee" class="headerlink" title="打开 qibtorrentee"></a>打开 qibtorrentee</h2><p>现在桌面上应该出现了一个 qibtorrentee 的图标，打开它。你也可以在浏览器中访问 查看群晖的 IP 地址，例如我的是 <code>192.168.1.111</code>，和 地址:8888 直接打开。</p>
 <p>默认的用户名为 <code>admin</code>，密码为 <code>adminadmin</code>，输入后就可以看到熟悉的界面了。</p>
 <img src="/posts/2021/0321092659/ui.png" alt="ui" width="600">
 
@@ -369,6 +369,23 @@
       </div>
 
   </div>
+</div>
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>iqhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://iqhy.github.io/posts/2021/0321092659/" title="群晖安装 qBittorrent Enhanced Edition">https://iqhy.github.io/posts/2021/0321092659/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa%204.0/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA 4.0</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
 </div>
 
 
@@ -454,7 +471,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-Docker"><span class="nav-number">1.</span> <span class="nav-text">安装 Docker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-qbittorrentee"><span class="nav-number">2.</span> <span class="nav-text">安装 qbittorrentee</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD%E6%98%A0%E5%83%8F"><span class="nav-number">2.1.</span> <span class="nav-text">下载映像</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE"><span class="nav-number">2.2.</span> <span class="nav-text">配置</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%93%E5%BC%80-qibtorrentee"><span class="nav-number">3.</span> <span class="nav-text">打开 qibtorrentee</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-Docker"><span class="nav-text">1  安装 Docker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-qbittorrentee"><span class="nav-text">2  安装 qbittorrentee</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%93%E5%BC%80-qibtorrentee"><span class="nav-text">3  打开 qibtorrentee</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -490,6 +507,9 @@
       <span class="links-of-author-item">
         <a href="mailto:imyuhanqing@outlook.com" title="E-Mail → mailto:imyuhanqing@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
       </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa%204.0/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa 4.0.svg" alt="Creative Commons"></a>
   </div>
 
 
@@ -533,17 +553,38 @@
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">30 分钟</span>
+    <span title="站点阅读时长">1:23</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span> 
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("10/25/2019 13:14:21");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+
 
         
 <div class="busuanzi-count">
   <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
       <span class="post-meta-item-icon">
-        <i class="fa fa-user"></i>
+        <i class="fa fa-fa fa-user"></i>
       </span>
       <span class="site-uv" title="总访客量">
         <span id="busuanzi_value_site_uv"></span>
@@ -552,7 +593,7 @@
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
       <span class="post-meta-item-icon">
-        <i class="fa fa-eye"></i>
+        <i class="fa fa-fa fa-eye"></i>
       </span>
       <span class="site-pv" title="总访问量">
         <span id="busuanzi_value_site_pv"></span>
@@ -575,7 +616,9 @@
   </div>
 
   
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
   <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
   <script src="/lib/velocity/velocity.min.js"></script>
   <script src="/lib/velocity/velocity.ui.min.js"></script>
 

@@ -15,12 +15,12 @@
 
 <link rel="stylesheet" href="/css/main.css">
 
-
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Hiragino Sans GB:300,300italic,400,400italic,700,700italic|web font:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
 <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"iqhy.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+    var CONFIG = {"hostname":"iqhy.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
   <meta name="description" content="在 Visual Studio 中使用 C Run-time Library (CRT) 检测内存泄漏。">
@@ -236,7 +236,7 @@
           
             <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
               <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
+                <i class="fa fa-fa fa-eye"></i>
               </span>
               <span class="post-meta-item-text">阅读次数：</span>
               <span id="busuanzi_value_page_pv"></span>
@@ -253,7 +253,7 @@
                 <i class="fa fa-clock-o"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
+              <span>7 分钟</span>
             </span>
 
         </div>
@@ -269,7 +269,7 @@
 <span id="more"></span>
 
 <p>内存泄漏是 C&#x2F;C++ 中最难发现的 BUG 之一，通常难以被注意到，使用 Visual Studio 和 C Run-time Library (CRT) 可以帮助我们发现内存泄漏问题。</p>
-<h2 id="启用内存泄漏检测"><a href="#启用内存泄漏检测" class="headerlink" title="启用内存泄漏检测"></a>启用内存泄漏检测</h2><p>要启用内存泄漏检测，只需在你的程序前加上</p>
+<h2 id="启用内存泄漏检测"><span class="post-title-index">1  </span><a href="#启用内存泄漏检测" class="headerlink" title="启用内存泄漏检测"></a>启用内存泄漏检测</h2><p>要启用内存泄漏检测，只需在你的程序前加上</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;crtdbg.h&gt;</span></span></span><br></pre></td></tr></table></figure>
 
 <p>其中，<code>#define _CRTDBG_MAP_ALLOC</code> 的作用是显示<strong>详细信息</strong>（如内存泄漏发生的文件、发生的具体行号），如果省略该语句，将不会输出详细信息。</p>
@@ -277,7 +277,7 @@
 <p>添加上述语句后，还需要在应用出口点前加上 <code>_CrtDumpMemoryLeaks</code>，以输出内存泄漏报告。</p>
 <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_CrtDumpMemoryLeaks();</span><br></pre></td></tr></table></figure>
 
-<h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><p>现在来看一个简单的例子，编写如下程序：</p>
+<h2 id="例子"><span class="post-title-index">2  </span><a href="#例子" class="headerlink" title="例子"></a>例子</h2><p>现在来看一个简单的例子，编写如下程序：</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;crtdbg.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span>* var = <span class="keyword">new</span> <span class="type">int</span>[<span class="number">10</span>];</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>注意要以<strong>调试模式</strong>运行该程序，如果不以调试模式运行则<strong>不会</strong>显示内存泄漏报告。</p>
@@ -292,7 +292,7 @@
 <li><code>40 bytes</code> 是内存泄漏的大小，因为我们分配了 10 个 <code>int</code>，正好是 <code>40 bytes</code>。</li>
 <li><code>CD CD CD ...</code> 是这块内存中的数据（十六进制表示）。</li>
 </ul>
-<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="define-CRTDBG-MAP-ALLOC-不输出详细信息"><a href="#define-CRTDBG-MAP-ALLOC-不输出详细信息" class="headerlink" title="#define _CRTDBG_MAP_ALLOC 不输出详细信息"></a>#define _CRTDBG_MAP_ALLOC 不输出详细信息</h3><p>可以观察到，虽然我们在代码中添加了 <code>#define _CRTDBG_MAP_ALLOC</code>，输出中仍然没有出现详细信息。如果没有显示代码的位置和行号，那么非常不利于我们调试代码。</p>
+<h2 id="常见问题"><span class="post-title-index">3  </span><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="define-CRTDBG-MAP-ALLOC-不输出详细信息"><span class="post-title-index">3.1  </span><a href="#define-CRTDBG-MAP-ALLOC-不输出详细信息" class="headerlink" title="#define _CRTDBG_MAP_ALLOC 不输出详细信息"></a>#define _CRTDBG_MAP_ALLOC 不输出详细信息</h3><p>可以观察到，虽然我们在代码中添加了 <code>#define _CRTDBG_MAP_ALLOC</code>，输出中仍然没有出现详细信息。如果没有显示代码的位置和行号，那么非常不利于我们调试代码。</p>
 <p>解决方法是添加如下语句。</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> _DEBUG</span></span><br><span class="line">    <span class="meta">#<span class="keyword">define</span> MYDEBUG_NEW new( _NORMAL_BLOCK, __FILE__, __LINE__)</span></span><br><span class="line">    <span class="meta">#<span class="keyword">define</span> new MYDEBUG_NEW</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">    <span class="meta">#<span class="keyword">define</span> MYDEBUG_NEW</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;crtdbg.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span>* var = <span class="keyword">new</span> <span class="type">int</span>[<span class="number">10</span>];</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -300,7 +300,7 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Detected memory leaks!</span><br><span class="line">Dumping objects -&gt;</span><br><span class="line">C:\path\main.cpp(13) : &#123;105&#125; normal block at 0x009F8830, 40 bytes long.</span><br><span class="line"> Data: &lt;                &gt; CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD CD </span><br><span class="line">Object dump complete.</span><br></pre></td></tr></table></figure>
 
 <p>可以看到内存泄漏发生在 <code>main.cpp</code> 的 13 行处。</p>
-<h3 id="使用-libeigen-时检测到内存泄漏"><a href="#使用-libeigen-时检测到内存泄漏" class="headerlink" title="使用 libeigen 时检测到内存泄漏"></a>使用 libeigen 时检测到内存泄漏</h3><p>在使用 Eigen 库时，会检测到内存泄漏，如下代码所示。</p>
+<h3 id="使用-libeigen-时检测到内存泄漏"><span class="post-title-index">3.2  </span><a href="#使用-libeigen-时检测到内存泄漏" class="headerlink" title="使用 libeigen 时检测到内存泄漏"></a>使用 libeigen 时检测到内存泄漏</h3><p>在使用 Eigen 库时，会检测到内存泄漏，如下代码所示。</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 前面的重复代码省略</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;eigen3/Eigen/Dense&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">using</span> RowMajorMat = Eigen::Matrix&lt;<span class="type">float</span>, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor&gt;;</span><br><span class="line">    <span class="function">RowMajorMat <span class="title">a</span><span class="params">(<span class="number">1024</span>, <span class="number">4096</span>)</span></span>;</span><br><span class="line">    <span class="function">RowMajorMat <span class="title">b</span><span class="params">(<span class="number">4096</span>, <span class="number">784</span>)</span></span>;</span><br><span class="line">    <span class="type">const</span> <span class="keyword">auto</span> c = a * b;</span><br><span class="line">    std::cout &lt;&lt; <span class="built_in">c</span>(<span class="number">0</span>, <span class="number">0</span>) &lt;&lt; std::endl;</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>发现内存泄漏</p>
@@ -310,7 +310,7 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">    &#123;</span><br><span class="line">        using RowMajorMat = Eigen::Matrix&lt;float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor&gt;;</span><br><span class="line">        RowMajorMat a(1024, 4096);</span><br><span class="line">        RowMajorMat b(4096, 784);</span><br><span class="line">        const auto c = a * b;</span><br><span class="line">        std::cout &lt;&lt; c(0, 0) &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>修改后未检测到内存泄漏。</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2>
+<h2 id="参考资料"><span class="post-title-index">4  </span><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2>
     </div>
 
     
@@ -334,6 +334,23 @@
       </div>
 
   </div>
+</div>
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>iqhy
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://iqhy.github.io/posts/2021/0321131258/" title="使用 Visual Studio 检测内存泄漏">https://iqhy.github.io/posts/2021/0321131258/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa%204.0/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA 4.0</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
 </div>
 
 
@@ -419,7 +436,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E7%94%A8%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B"><span class="nav-number">1.</span> <span class="nav-text">启用内存泄漏检测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E5%AD%90"><span class="nav-number">2.</span> <span class="nav-text">例子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">常见问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#define-CRTDBG-MAP-ALLOC-%E4%B8%8D%E8%BE%93%E5%87%BA%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF"><span class="nav-number">3.1.</span> <span class="nav-text">#define _CRTDBG_MAP_ALLOC 不输出详细信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-libeigen-%E6%97%B6%E6%A3%80%E6%B5%8B%E5%88%B0%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F"><span class="nav-number">3.2.</span> <span class="nav-text">使用 libeigen 时检测到内存泄漏</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E7%94%A8%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A3%80%E6%B5%8B"><span class="nav-text">1  启用内存泄漏检测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E5%AD%90"><span class="nav-text">2  例子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="nav-text">3  常见问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-text">4  参考资料</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -455,6 +472,9 @@
       <span class="links-of-author-item">
         <a href="mailto:imyuhanqing@outlook.com" title="E-Mail → mailto:imyuhanqing@outlook.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
       </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa%204.0/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa 4.0.svg" alt="Creative Commons"></a>
   </div>
 
 
@@ -498,17 +518,38 @@
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">30 分钟</span>
+    <span title="站点阅读时长">1:23</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span> 
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("10/25/2019 13:14:21");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+
 
         
 <div class="busuanzi-count">
   <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
       <span class="post-meta-item-icon">
-        <i class="fa fa-user"></i>
+        <i class="fa fa-fa fa-user"></i>
       </span>
       <span class="site-uv" title="总访客量">
         <span id="busuanzi_value_site_uv"></span>
@@ -517,7 +558,7 @@
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
       <span class="post-meta-item-icon">
-        <i class="fa fa-eye"></i>
+        <i class="fa fa-fa fa-eye"></i>
       </span>
       <span class="site-pv" title="总访问量">
         <span id="busuanzi_value_site_pv"></span>
@@ -540,7 +581,9 @@
   </div>
 
   
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
   <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
   <script src="/lib/velocity/velocity.min.js"></script>
   <script src="/lib/velocity/velocity.ui.min.js"></script>
 
